@@ -1,0 +1,16 @@
+{
+    "our_team": {
+        "Bijoy": 7,
+        "Krishna": 6,
+        "David": 4,
+        "Kim": 3,
+        "Kellan": 2
+    },
+    "their_team": {
+        "Kapil": 6,
+        "Piyush": 6,
+        "Saksham": 5,
+        "Dr. T": 5,
+        "Arvind": 4
+    }
+}
