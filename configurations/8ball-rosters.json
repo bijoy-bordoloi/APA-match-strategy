@@ -1,0 +1,1049 @@
+[
+    {
+        "data": {
+            "division": {
+                "id": 433395,
+                "teams": [
+                    {
+                        "isBye": true,
+                        "id": 13045440,
+                        "name": "Bye",
+                        "number": "45508",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 87357,
+                            "name": "No Match This Week",
+                            "address": null,
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": false,
+                        "id": 13043723,
+                        "name": "Satire Squad",
+                        "number": "45501",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [
+                            {
+                                "id": 92305310,
+                                "memberNumber": "98312959",
+                                "displayName": "Kapil Londhe",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 6,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3207107,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305305,
+                                "memberNumber": "98301477",
+                                "displayName": "Saksham Sijariya",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3402073,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305306,
+                                "memberNumber": "98314713",
+                                "displayName": "Shahaji Arkile",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3436513,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305303,
+                                "memberNumber": "98312574",
+                                "displayName": "Piyush Zode",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 6,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3112189,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305302,
+                                "memberNumber": "98308773",
+                                "displayName": "Tamil \"DR. T\" Manickavelu",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3004759,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305304,
+                                "memberNumber": "98313783",
+                                "displayName": "Arvind Kumar",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3311765,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92326679,
+                                "memberNumber": "98300312",
+                                "displayName": "Pratik Shendge",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3470450,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92327337,
+                                "memberNumber": "98300313",
+                                "displayName": "Vaibhav Srivastava",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3470526,
+                                    "__typename": "Member"
+                                }
+                            }
+                        ],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": false,
+                        "id": 13043724,
+                        "name": "The Lucky Losers",
+                        "number": "45502",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [
+                            {
+                                "id": 92305320,
+                                "memberNumber": "98309577",
+                                "displayName": "Todd \"The Lucky Loser\" Shirley",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 6,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3001368,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305313,
+                                "memberNumber": "98313534",
+                                "displayName": "Noam King",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3274543,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305315,
+                                "memberNumber": "98314692",
+                                "displayName": "Tarn Faulkner",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3447018,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305314,
+                                "memberNumber": "98314341",
+                                "displayName": "James Wolf",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3395664,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305316,
+                                "memberNumber": "98313584",
+                                "displayName": "William Plunkett",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3004854,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305317,
+                                "memberNumber": "98314876",
+                                "displayName": "Chad Reid",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3465088,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305318,
+                                "memberNumber": "98314865",
+                                "displayName": "Whitney Reid",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3465087,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305319,
+                                "memberNumber": "98313466",
+                                "displayName": "Doug McKnight",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3285330,
+                                    "__typename": "Member"
+                                }
+                            }
+                        ],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": false,
+                        "id": 13043725,
+                        "name": "Poolhall Junkies",
+                        "number": "45503",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [
+                            {
+                                "id": 92305328,
+                                "memberNumber": "98313070",
+                                "displayName": "Luis Mazon",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3225499,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305321,
+                                "memberNumber": "98303225",
+                                "displayName": "Kirk Boyens",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 6,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 871529,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305327,
+                                "memberNumber": "98314756",
+                                "displayName": "Neng Xue",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3447410,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305326,
+                                "memberNumber": "98313237",
+                                "displayName": "Meaghan Jowdy",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3403685,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305324,
+                                "memberNumber": "98314043",
+                                "displayName": "Adam Hunnicutt",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3352175,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92321202,
+                                "memberNumber": "98314403",
+                                "displayName": "Chingy Leelaphisut",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3391773,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92333908,
+                                "memberNumber": "98302705",
+                                "displayName": "James Lange",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2724138,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92333910,
+                                "memberNumber": "98302716",
+                                "displayName": "Julie Lange",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2724139,
+                                    "__typename": "Member"
+                                }
+                            }
+                        ],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": false,
+                        "id": 13043726,
+                        "name": "Scratches Happen",
+                        "number": "45504",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [
+                            {
+                                "id": 92305336,
+                                "memberNumber": "98309512",
+                                "displayName": "Shemal Medawattage",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 6,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2987903,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305331,
+                                "memberNumber": "98309501",
+                                "displayName": "Cheryl Medawattage",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2889113,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305332,
+                                "memberNumber": "98313179",
+                                "displayName": "Cristhian Rachet",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 6,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3228808,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305333,
+                                "memberNumber": "98313424",
+                                "displayName": "Lina Blinova",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3258935,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305329,
+                                "memberNumber": "98307058",
+                                "displayName": "Debi Beyerlin",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2929772,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305334,
+                                "memberNumber": "98314532",
+                                "displayName": "Greg Vodolazov",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3409075,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92319116,
+                                "memberNumber": "98300318",
+                                "displayName": "Amir Manavi",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3469958,
+                                    "__typename": "Member"
+                                }
+                            }
+                        ],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": false,
+                        "id": 13043727,
+                        "name": "The Anti Villian League",
+                        "number": "45505",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [
+                            {
+                                "id": 92305343,
+                                "memberNumber": "98311800",
+                                "displayName": "Bijoy Bordoloi",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 7,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2375476,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305338,
+                                "memberNumber": "98300442",
+                                "displayName": "Kim-Khanh Van",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2569082,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305339,
+                                "memberNumber": "98314210",
+                                "displayName": "Tien Truong",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3372128,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305340,
+                                "memberNumber": "98314806",
+                                "displayName": "David Remer",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3453315,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305341,
+                                "memberNumber": "98314811",
+                                "displayName": "Jeff Highbarger",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3455412,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305342,
+                                "memberNumber": "98314832",
+                                "displayName": "Kellan Thai",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3455447,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305337,
+                                "memberNumber": "98311676",
+                                "displayName": "Krishnamurthy Ganesan",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 6,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2364392,
+                                    "__typename": "Member"
+                                }
+                            }
+                        ],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": false,
+                        "id": 13043728,
+                        "name": "Golden Sunrise",
+                        "number": "45506",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [
+                            {
+                                "id": 92305350,
+                                "memberNumber": "98314725",
+                                "displayName": "Mehul Ppaandhii",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3439656,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305344,
+                                "memberNumber": "98314662",
+                                "displayName": "Art Tsihlakis",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3418759,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305346,
+                                "memberNumber": "98314155",
+                                "displayName": "Martha Padilla",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3370428,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305347,
+                                "memberNumber": "98313865",
+                                "displayName": "David Padilla",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3323013,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305348,
+                                "memberNumber": "98314382",
+                                "displayName": "Amandeep Gupta",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3383789,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92305349,
+                                "memberNumber": "98313668",
+                                "displayName": "Janmejay Singh",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3288219,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92309186,
+                                "memberNumber": "98312734",
+                                "displayName": "Jason Field",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 1605375,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92333324,
+                                "memberNumber": "98300333",
+                                "displayName": "Jitendra Thakur",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3470627,
+                                    "__typename": "Member"
+                                }
+                            }
+                        ],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": false,
+                        "id": 13045438,
+                        "name": "2 Drink Minimum",
+                        "number": "45507",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [
+                            {
+                                "id": 92319558,
+                                "memberNumber": "98309543",
+                                "displayName": "Matt Kruse",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3199848,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92319559,
+                                "memberNumber": "98314198",
+                                "displayName": "Kim Kruse",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3368959,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92319561,
+                                "memberNumber": "98308498",
+                                "displayName": "Kristi Corcoran",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 2,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 1589258,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92319563,
+                                "memberNumber": "98313340",
+                                "displayName": "Justin Kendle",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2901738,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92319565,
+                                "memberNumber": "98314877",
+                                "displayName": "Peter Knoke",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3466455,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92319566,
+                                "memberNumber": "98314026",
+                                "displayName": "Nadya Bobrova",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3346476,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92333819,
+                                "memberNumber": "98307867",
+                                "displayName": "Patrick Casey",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 5,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 2954394,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
+                                "id": 92338382,
+                                "memberNumber": "98300314",
+                                "displayName": "Mikhail Bobrov",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 0,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3470822,
+                                    "__typename": "Member"
+                                }
+                            }
+                        ],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        }
+                    }
+                ],
+                "__typename": "Division"
+            }
+        }
+    }
+]

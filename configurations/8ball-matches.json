@@ -1,0 +1,1140 @@
+[
+    {
+        "data": {
+            "viewer": {
+                "__typename": "Member",
+                "id": 2375476,
+                "firstName": "Bijoy",
+                "lastName": "Bordoloi",
+                "emailAddress": "bbordoloi@gmail.com"
+            },
+            "league": {
+                "id": 1498,
+                "name": "Eastside/Seattle APA",
+                "slug": "esapa",
+                "isMine": true,
+                "logo": "https://assets.poolplayers.com/leaguecentral/APA/APA-Logo.png",
+                "homePageUrl": "esapa.apaleagues.com",
+                "facebookUrl": "",
+                "phone": "+12188883089",
+                "contacts": [
+                    {
+                        "id": 4721,
+                        "firstName": "Raymond",
+                        "lastName": "Sam",
+                        "phone": null,
+                        "__typename": "Contact"
+                    },
+                    {
+                        "id": 4735,
+                        "firstName": "Kee",
+                        "lastName": "Wan",
+                        "phone": null,
+                        "__typename": "Contact"
+                    }
+                ],
+                "__typename": "League"
+            }
+        }
+    },
+    {
+        "data": {
+            "division": {
+                "id": 433395,
+                "name": "FRI BELLEVUE DJ-8",
+                "contacts": [],
+                "__typename": "Division"
+            }
+        }
+    },
+    {
+        "data": {
+            "team": {
+                "id": 13043727,
+                "name": "The Anti Villian League",
+                "number": "45505",
+                "league": {
+                    "id": 1498,
+                    "slug": "esapa",
+                    "__typename": "League"
+                },
+                "division": {
+                    "id": 433395,
+                    "type": "EIGHT",
+                    "__typename": "Division"
+                },
+                "roster": [
+                    {
+                        "id": 92305343,
+                        "memberNumber": "98311800",
+                        "displayName": "Bijoy Bordoloi",
+                        "matchesWon": 0,
+                        "matchesPlayed": 0,
+                        "pa": 0,
+                        "ppm": 0,
+                        "skillLevel": 7,
+                        "__typename": "EightBallPlayer",
+                        "member": {
+                            "id": 2375476,
+                            "__typename": "Member"
+                        }
+                    },
+                    {
+                        "id": 92305338,
+                        "memberNumber": "98300442",
+                        "displayName": "Kim-Khanh Van",
+                        "matchesWon": 0,
+                        "matchesPlayed": 0,
+                        "pa": 0,
+                        "ppm": 0,
+                        "skillLevel": 2,
+                        "__typename": "EightBallPlayer",
+                        "member": {
+                            "id": 2569082,
+                            "__typename": "Member"
+                        }
+                    },
+                    {
+                        "id": 92305339,
+                        "memberNumber": "98314210",
+                        "displayName": "Tien Truong",
+                        "matchesWon": 0,
+                        "matchesPlayed": 0,
+                        "pa": 0,
+                        "ppm": 0,
+                        "skillLevel": 5,
+                        "__typename": "EightBallPlayer",
+                        "member": {
+                            "id": 3372128,
+                            "__typename": "Member"
+                        }
+                    },
+                    {
+                        "id": 92305340,
+                        "memberNumber": "98314806",
+                        "displayName": "David Remer",
+                        "matchesWon": 0,
+                        "matchesPlayed": 0,
+                        "pa": 0,
+                        "ppm": 0,
+                        "skillLevel": 4,
+                        "__typename": "EightBallPlayer",
+                        "member": {
+                            "id": 3453315,
+                            "__typename": "Member"
+                        }
+                    },
+                    {
+                        "id": 92305341,
+                        "memberNumber": "98314811",
+                        "displayName": "Jeff Highbarger",
+                        "matchesWon": 0,
+                        "matchesPlayed": 0,
+                        "pa": 0,
+                        "ppm": 0,
+                        "skillLevel": 2,
+                        "__typename": "EightBallPlayer",
+                        "member": {
+                            "id": 3455412,
+                            "__typename": "Member"
+                        }
+                    },
+                    {
+                        "id": 92305342,
+                        "memberNumber": "98314832",
+                        "displayName": "Kellan Thai",
+                        "matchesWon": 0,
+                        "matchesPlayed": 0,
+                        "pa": 0,
+                        "ppm": 0,
+                        "skillLevel": 2,
+                        "__typename": "EightBallPlayer",
+                        "member": {
+                            "id": 3455447,
+                            "__typename": "Member"
+                        }
+                    },
+                    {
+                        "id": 92305337,
+                        "memberNumber": "98311676",
+                        "displayName": "Krishnamurthy Ganesan",
+                        "matchesWon": 0,
+                        "matchesPlayed": 0,
+                        "pa": 0,
+                        "ppm": 0,
+                        "skillLevel": 6,
+                        "__typename": "EightBallPlayer",
+                        "member": {
+                            "id": 2364392,
+                            "__typename": "Member"
+                        }
+                    }
+                ],
+                "__typename": "Team"
+            }
+        }
+    },
+    {
+        "data": {
+            "team": {
+                "id": 13043727,
+                "sessionBonusPoints": null,
+                "sessionPoints": null,
+                "sessionTotalPoints": 0,
+                "division": {
+                    "id": 433395,
+                    "isTournament": false,
+                    "__typename": "Division"
+                },
+                "matches": [
+                    {
+                        "week": 1,
+                        "type": "EIGHT",
+                        "id": 50493554,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": "https://api.poolplayers.com/scoresheets/PrintOMSScoresheet/50493554/2375476/3",
+                        "startTime": "2026-05-08T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043725,
+                            "name": "Poolhall Junkies",
+                            "number": "45503",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 2,
+                        "type": "EIGHT",
+                        "id": 50493557,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-05-15T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043724,
+                            "name": "The Lucky Losers",
+                            "number": "45502",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 3,
+                        "type": "EIGHT",
+                        "id": 50493561,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-05-22T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043728,
+                            "name": "Golden Sunrise",
+                            "number": "45506",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 4,
+                        "type": "EIGHT",
+                        "id": 50493566,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-05-29T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043726,
+                            "name": "Scratches Happen",
+                            "number": "45504",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 5,
+                        "type": "EIGHT",
+                        "id": 50493568,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-06-05T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043723,
+                            "name": "Satire Squad",
+                            "number": "45501",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 6,
+                        "type": "EIGHT",
+                        "id": 50493573,
+                        "isBye": true,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-06-12T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 87357,
+                            "name": "No Match This Week",
+                            "address": null,
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13045440,
+                            "name": "Bye",
+                            "number": "45508",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 7,
+                        "type": "EIGHT",
+                        "id": 50493577,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-06-19T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13045438,
+                            "name": "2 Drink Minimum",
+                            "number": "45507",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 8,
+                        "type": "EIGHT",
+                        "id": 50493582,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-06-26T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043725,
+                            "name": "Poolhall Junkies",
+                            "number": "45503",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 9,
+                        "type": "EIGHT",
+                        "id": 50493585,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-07-03T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043724,
+                            "name": "The Lucky Losers",
+                            "number": "45502",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 10,
+                        "type": "EIGHT",
+                        "id": 50493589,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-07-10T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043728,
+                            "name": "Golden Sunrise",
+                            "number": "45506",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 11,
+                        "type": "EIGHT",
+                        "id": 50493594,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-07-17T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043726,
+                            "name": "Scratches Happen",
+                            "number": "45504",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 12,
+                        "type": "EIGHT",
+                        "id": 50493596,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-07-24T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043723,
+                            "name": "Satire Squad",
+                            "number": "45501",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 13,
+                        "type": "EIGHT",
+                        "id": 50493601,
+                        "isBye": true,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-07-31T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13045440,
+                            "name": "Bye",
+                            "number": "45508",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 14,
+                        "type": "EIGHT",
+                        "id": 50493605,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-08-07T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13045438,
+                            "name": "2 Drink Minimum",
+                            "number": "45507",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": 15,
+                        "type": "EIGHT",
+                        "id": 50493610,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-08-14T18:00:00-07:00",
+                        "isMine": true,
+                        "isPaid": false,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": false,
+                        "description": "",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": {
+                            "id": 109357,
+                            "name": "Off The Rails",
+                            "address": {
+                                "id": 64318,
+                                "name": "Off The Rails",
+                                "__typename": "Address"
+                            },
+                            "__typename": "HostLocation"
+                        },
+                        "home": {
+                            "id": 13043725,
+                            "name": "Poolhall Junkies",
+                            "number": "45503",
+                            "isMine": false,
+                            "__typename": "Team"
+                        },
+                        "away": {
+                            "id": 13043727,
+                            "name": "The Anti Villian League",
+                            "number": "45505",
+                            "isMine": true,
+                            "__typename": "Team"
+                        },
+                        "league": {
+                            "id": 1498,
+                            "isMine": true,
+                            "slug": "esapa",
+                            "isElectronicPaymentsEnabled": true,
+                            "__typename": "League"
+                        },
+                        "orderItems": [],
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    },
+                    {
+                        "week": null,
+                        "type": null,
+                        "id": null,
+                        "isBye": false,
+                        "status": "UNPLAYED",
+                        "scoresheet": null,
+                        "startTime": "2026-08-21T00:00:00Z",
+                        "isMine": true,
+                        "isPaid": null,
+                        "isScored": false,
+                        "isFinalized": false,
+                        "isPlayoff": true,
+                        "description": "Playoff Week",
+                        "tableNumber": null,
+                        "results": [],
+                        "timeZone": {
+                            "id": "147",
+                            "name": "America/Los_Angeles",
+                            "__typename": "TimeZone"
+                        },
+                        "location": null,
+                        "home": null,
+                        "away": null,
+                        "league": null,
+                        "orderItems": null,
+                        "division": {
+                            "id": 433395,
+                            "scheduleInEdit": false,
+                            "isTournament": false,
+                            "__typename": "Division"
+                        },
+                        "__typename": "Match"
+                    }
+                ],
+                "__typename": "Team"
+            }
+        }
+    }
+]
