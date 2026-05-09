@@ -69,6 +69,7 @@ class APAMatchEngine:
         self.played_theirs = []
         self.total_points = 0
         self.total_sl_used = 0
+        self.their_sl_used = 0
         self.our_dp_happened = False
         self.their_dp_happened = False
         self.match_history = []
@@ -254,7 +255,8 @@ class APAMatchEngine:
             legal_eligible = self.get_eligible(for_suggestion=False)
 
             print(f"\n{COLORS.BLUE}{'='*15} MATCH {m_idx}: {'THROWING' if is_throwing else 'MATCHING'} {'='*15}{COLORS.END}")
-            print(f"Current SL Total: {COLORS.BOLD}{self.total_sl_used}/23{COLORS.END}")
+            print(f"AVL SL Total:      {COLORS.BOLD}{self.total_sl_used}/23{COLORS.END}")
+            print(f"Opponent SL Total: {COLORS.BOLD}{self.their_sl_used}/23{COLORS.END}")
             self.print_our_roster_panel(eligible_names=set(legal_eligible.keys()))
 
             if is_throwing:
@@ -293,6 +295,7 @@ class APAMatchEngine:
             self.total_sl_used += self.our_team[our_p]
             self.played_ours.append((our_p, our_pts))
             self.played_theirs.append(their_p)
+            self.their_sl_used += self.their_team[their_p]
 
             self.match_history.append({
                 "our_player": our_p,
