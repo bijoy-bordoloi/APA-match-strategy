@@ -2,9 +2,10 @@
 # deploy.sh — full-stack deployment for APA Match Strategy
 #
 # Usage:
-#   ./deploy.sh              # deploy everything (Lambda + frontend)
+#   ./deploy.sh              # deploy everything (Lambda + frontend + s3 configs)
 #   ./deploy.sh lambda       # Lambda only
 #   ./deploy.sh frontend     # frontend only
+#   ./deploy.sh s3           # sync config files to S3 and flush Lambda cache
 
 set -euo pipefail
 
@@ -12,6 +13,7 @@ REGION="us-west-1"
 LAMBDA_FUNCTION="APA-match-strategy"
 AMPLIFY_APP_ID="d1r5j1w7p4gz6w"
 AMPLIFY_BRANCH="main"
+CONFIG_S3_BUCKET="apa-match-strategy-configs-bijoy"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
 TARGET="${1:-all}"
@@ -81,13 +83,30 @@ deploy_frontend() {
   echo "    App: https://$AMPLIFY_BRANCH.$AMPLIFY_APP_ID.amplifyapp.com"
 }
 
+# ── S3 configs ───────────────────────────────────────────────────────────────
+sync_s3() {
+  echo "==> Syncing config files to S3..."
+  aws s3 sync "$DIR/configurations/" "s3://$CONFIG_S3_BUCKET/configs/" \
+    --region "$REGION" --delete
+
+  echo "==> Flushing Lambda config cache..."
+  aws lambda update-function-configuration \
+    --function-name "$LAMBDA_FUNCTION" \
+    --region "$REGION" \
+    --description "config refresh $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --output text --query 'LastUpdateStatus'
+  aws lambda wait function-updated --function-name "$LAMBDA_FUNCTION" --region "$REGION"
+  echo "    Config live: s3://$CONFIG_S3_BUCKET/configs/"
+}
+
 # ── Dispatch ─────────────────────────────────────────────────────────────────
 case "$TARGET" in
   lambda)   deploy_lambda ;;
   frontend) deploy_frontend ;;
-  all)      deploy_lambda && deploy_frontend ;;
+  s3)       sync_s3 ;;
+  all)      deploy_lambda && deploy_frontend && sync_s3 ;;
   *)
-    echo "Usage: $0 [lambda|frontend|all]"
+    echo "Usage: $0 [lambda|frontend|s3|all]"
     exit 1
     ;;
 esac
