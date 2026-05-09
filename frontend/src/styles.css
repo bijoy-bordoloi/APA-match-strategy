@@ -303,6 +303,16 @@ th {
   background: #ffffff;
 }
 
+.ghost-button.danger {
+  color: var(--red);
+}
+
+.cancel-band {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
 .primary-action {
   border-color: var(--green);
   background: var(--green);

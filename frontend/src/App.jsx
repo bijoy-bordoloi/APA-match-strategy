@@ -19,6 +19,7 @@ import {
   Users,
   Wifi,
   WifiOff,
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -329,6 +330,11 @@ export default function App() {
     setScreen('setup');
   }
 
+  function cancelMatch() {
+    if (!window.confirm('Cancel this match? All recorded turns will be lost.')) return;
+    startNewMatch();
+  }
+
   async function submitChat(message = chatInput) {
     const trimmed = message.trim();
     if (!trimmed) return;
@@ -488,6 +494,7 @@ export default function App() {
           askForSuggestion={askForSuggestion}
           saveTurn={saveTurn}
           submitChat={submitChat}
+          cancelMatch={cancelMatch}
         />
       )}
 
@@ -649,6 +656,7 @@ function LiveView({
   askForSuggestion,
   saveTurn,
   submitChat,
+  cancelMatch,
 }) {
   return (
     <main className="match-grid">
@@ -723,6 +731,13 @@ function LiveView({
             Record Turn
           </button>
         </section>
+
+        <div className="cancel-band">
+          <button className="ghost-button danger" onClick={cancelMatch}>
+            <X size={18} />
+            Cancel Match
+          </button>
+        </div>
       </section>
 
       <ChatPanel
