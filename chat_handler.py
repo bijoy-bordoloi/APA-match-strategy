@@ -138,6 +138,7 @@ def _query_groq(messages: list[dict[str, str]], *, temperature: float) -> str:
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "User-Agent": "python-urllib/3",
         },
         method="POST",
     )
