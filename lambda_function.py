@@ -1,0 +1,533 @@
+"""APA Match Engine — API Gateway Lambda backend.
+
+Routes implemented for the mobile React app:
+  POST /match    create or load a match session
+  POST /suggest  get a throw/counter recommendation
+  POST /chat     freeform LLM chat on match context
+  POST /result   record a completed turn
+  POST /submit   create/update a complete match result
+  GET  /history  list past matches and player stats
+
+The legacy POST /eligible route is retained for existing CLI/test payloads.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any
+
+from chat_handler import generate_response, generate_suggestion
+from data_access import MatchRepository, build_history_response, slugify
+from match_rules import (
+    RuleViolation,
+    build_llm_context,
+    eligible_players,
+    player_id_from_name,
+    players_to_sl_map,
+    roster_to_players,
+    score_tuple,
+    summarize_match,
+    validate_turn,
+)
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+
+class NotFound(ValueError):
+    pass
+
+
+def _build_strategy(strategy_name: str, is_playoff: bool, match_context: dict[str, Any]):
+    if strategy_name == "aggressive":
+        from strategies import AggressiveStrategy
+
+        return AggressiveStrategy(is_playoff=is_playoff)
+    if strategy_name == "neutral":
+        from strategies import NeutralStrategy
+
+        return NeutralStrategy(is_playoff=is_playoff)
+    if strategy_name == "groq":
+        from groqstrategy import GroqStrategy
+        import os
+
+        return GroqStrategy(
+            api_key=os.environ.get("GROQ_API_KEY", ""),
+            match_context=match_context,
+            is_playoff=is_playoff,
+        )
+    raise ValueError(f"Unknown strategy: {strategy_name!r}")
+
+
+def compute_eligible(
+    our_team: dict[str, int],
+    played_ours: list,
+    our_dp_happened: bool,
+    total_sl_used: int,
+    for_suggestion: bool,
+) -> dict[str, int]:
+    """Legacy helper used by the original CLI client."""
+    counts: dict[str, int] = {}
+    for entry in played_ours:
+        name = entry[0]
+        counts[name] = counts.get(name, 0) + 1
+
+    eligible: dict[str, int] = {}
+    for name, sl in our_team.items():
+        play_count = counts.get(name, 0)
+        if play_count >= 2:
+            continue
+        if play_count == 1 and our_dp_happened:
+            continue
+        room = 23 - total_sl_used
+        if for_suggestion:
+            if int(sl) > room + 2:
+                continue
+        elif int(sl) > room:
+            continue
+        eligible[name] = int(sl)
+    return eligible
+
+
+def handle_match(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    match_id = body.get("match_id")
+    if match_id and not body.get("create_new"):
+        loaded = repository.get_match(str(match_id))
+        if loaded:
+            return {"result": loaded, "error": None}
+
+    match_context = body.get("match_context", {})
+    our_roster_source = (
+        body.get("our_roster")
+        or body.get("our_team")
+        or match_context.get("our_roster")
+        or match_context.get("avl_scheduled")
+        or match_context.get("full_avl_roster")
+    )
+    opponent_roster_source = (
+        body.get("opponent_roster")
+        or body.get("their_roster")
+        or body.get("their_team")
+        or match_context.get("opponent_roster")
+    )
+
+    our_players = roster_to_players(our_roster_source)
+    opponent_players = roster_to_players(opponent_roster_source)
+
+    opponent_team = body.get("opponent_team") if isinstance(body.get("opponent_team"), dict) else {}
+    opponent_name = (
+        body.get("opponent_name")
+        or opponent_team.get("name")
+        or match_context.get("opponent_name")
+        or "Opponent"
+    )
+    our_team_name = body.get("our_team_name") or "Anti-Villain League"
+
+    our_team_id = str(body.get("our_team_id") or "anti-villain-league")
+    opponent_team_id = str(body.get("opponent_team_id") or opponent_team.get("team_id") or slugify(opponent_name))
+
+    repository.put_team(our_team_id, our_team_name, our_players)
+    repository.put_team(opponent_team_id, opponent_name, opponent_players)
+
+    first_move = str(body.get("first_move", "")).lower()
+    we_throw_first = bool(body.get("we_throw_first", first_move in {"throwing", "throw", "first"}))
+    mode = body.get("mode") or ("playoff" if body.get("is_playoff") else "regular")
+
+    match = repository.put_match(
+        {
+            "match_id": str(match_id) if match_id else None,
+            "week": body.get("week") or match_context.get("week"),
+            "date": body.get("date") or match_context.get("date"),
+            "location": body.get("location") or match_context.get("location"),
+            "home_team_id": body.get("home_team_id") or our_team_id,
+            "away_team_id": body.get("away_team_id") or opponent_team_id,
+            "our_team_id": our_team_id,
+            "opponent_team_id": opponent_team_id,
+            "our_team_name": our_team_name,
+            "opponent_team_name": opponent_name,
+            "mode": mode,
+            "status": body.get("status", "live"),
+            "we_throw_first": we_throw_first,
+            "our_roster": players_to_sl_map(our_players),
+            "their_roster": players_to_sl_map(opponent_players),
+            "source_context": match_context,
+        }
+    )
+
+    loaded = repository.get_match(match["match_id"])
+    return {"result": loaded, "error": None}
+
+
+def handle_suggest(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    action = body["action"]
+    match_context = _context_from_body_or_match(body, repository)
+    eligible_ours = body.get("eligible_our_players") or body.get("eligible_ours")
+    remaining_theirs = body.get("remaining_their_players") or body.get("rem_theirs")
+
+    if not eligible_ours:
+        eligible_ours = eligible_players(
+            match_context.get("our_roster", {}),
+            match_context.get("turns", []),
+            side="our",
+            fresh_only=True,
+        )
+    if not remaining_theirs:
+        remaining_theirs = eligible_players(
+            match_context.get("their_roster", {}),
+            match_context.get("turns", []),
+            side="their",
+            enforce_budget=False,
+        )
+
+    total_sl_used = int(
+        body.get("total_sl_used", match_context.get("summary", {}).get("our_sl_used", 0))
+    )
+    strategy_name = body.get("strategy", "groq")
+
+    if strategy_name in {"aggressive", "neutral"}:
+        strategy = _build_strategy(strategy_name, match_context.get("mode") == "playoff", match_context)
+        if action == "suggest_throw":
+            suggestion = strategy.suggest_throw(eligible_ours, remaining_theirs, total_sl_used)
+        elif action == "suggest_counter":
+            suggestion = strategy.suggest_counter(
+                eligible_ours,
+                body["opponent_name"],
+                int(body["opponent_sl"]),
+                total_sl_used,
+            )
+        else:
+            raise ValueError(f"Unknown action: {action!r}")
+    else:
+        suggestion = generate_suggestion(
+            action=action,
+            eligible_our_players={name: int(sl) for name, sl in eligible_ours.items()},
+            remaining_their_players={name: int(sl) for name, sl in remaining_theirs.items()},
+            total_sl_used=total_sl_used,
+            opponent_name=body.get("opponent_name"),
+            opponent_sl=body.get("opponent_sl"),
+            match_context=_enrich_with_h2h(match_context, repository),
+        )
+
+    return {"suggestion": suggestion, "result": suggestion, "error": None}
+
+
+def handle_chat(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    message = str(body["message"]).strip()
+    if not message:
+        raise ValueError("message is required")
+
+    match_context = _context_from_body_or_match(body, repository)
+    match_context = _enrich_with_h2h(match_context, repository)
+    reply = generate_response(message, match_context, body.get("history", []))
+    return {"reply": reply, "result": reply, "error": None}
+
+
+def handle_result(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    match_id = str(body["match_id"])
+    loaded = repository.get_match(match_id)
+    if not loaded:
+        raise NotFound(f"Match {match_id} not found")
+
+    turn_body = body.get("turn", body)
+    match = loaded["match"]
+    turns = loaded["turns"]
+    our_score, their_score = score_tuple(
+        score=turn_body.get("score"),
+        our_score=turn_body.get("our_score"),
+        their_score=turn_body.get("their_score"),
+    )
+
+    our_name = _player_name(turn_body, match, side="our")
+    their_name = _player_name(turn_body, match, side="their")
+    our_sl = _skill_level(turn_body, match, our_name, side="our")
+    their_sl = _skill_level(turn_body, match, their_name, side="their")
+
+    normalized = validate_turn(
+        turns,
+        mode=match.get("mode", "regular"),
+        our_player_name=our_name,
+        their_player_name=their_name,
+        our_sl=our_sl,
+        their_sl=their_sl,
+        our_score=our_score,
+        their_score=their_score,
+        is_our_dp=turn_body.get("is_our_dp"),
+        is_their_dp=turn_body.get("is_their_dp"),
+    )
+    normalized.update(
+        {
+            "our_player_id": str(turn_body.get("our_player_id") or player_id_from_name(our_name)),
+            "their_player_id": str(turn_body.get("their_player_id") or player_id_from_name(their_name)),
+        }
+    )
+    saved_turn = repository.put_turn(match_id, normalized)
+    repository.update_h2h(
+        saved_turn["our_player_id"],
+        saved_turn["their_player_id"],
+        won=int(saved_turn["our_score"]) >= 2,
+    )
+
+    reloaded = repository.get_match(match_id)
+    if not reloaded:
+        raise NotFound(f"Match {match_id} not found after update")
+    repository.set_match_status(match_id, "complete" if reloaded["summary"]["complete"] else "live")
+    reloaded = repository.get_match(match_id)
+    return {"result": reloaded, "turn": saved_turn, "error": None}
+
+
+def handle_submit(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    match_body = {**body.get("match", {}), **body}
+    turns_body = body.get("turns") or body.get("match", {}).get("turns") or []
+    if not turns_body:
+        raise ValueError("turns are required")
+
+    match_context = match_body.get("match_context", {})
+    our_roster_source = (
+        match_body.get("our_roster")
+        or match_body.get("our_team")
+        or match_context.get("our_roster")
+        or match_context.get("avl_scheduled")
+        or match_context.get("full_avl_roster")
+    )
+    opponent_roster_source = (
+        match_body.get("opponent_roster")
+        or match_body.get("their_roster")
+        or match_body.get("their_team")
+        or match_context.get("their_roster")
+        or match_context.get("opponent_roster")
+    )
+    our_players = roster_to_players(our_roster_source)
+    opponent_players = roster_to_players(opponent_roster_source)
+
+    opponent_team = match_body.get("opponent_team") if isinstance(match_body.get("opponent_team"), dict) else {}
+    opponent_name = (
+        match_body.get("opponent_name")
+        or match_body.get("opponent_team_name")
+        or opponent_team.get("name")
+        or match_context.get("opponent_team_name")
+        or match_context.get("opponent_name")
+        or "Opponent"
+    )
+    our_team_name = match_body.get("our_team_name") or "Anti-Villain League"
+    our_team_id = str(match_body.get("our_team_id") or "anti-villain-league")
+    opponent_team_id = str(match_body.get("opponent_team_id") or opponent_team.get("team_id") or slugify(opponent_name))
+
+    repository.put_team(our_team_id, our_team_name, our_players)
+    repository.put_team(opponent_team_id, opponent_name, opponent_players)
+
+    first_move = str(match_body.get("first_move", "")).lower()
+    we_throw_first = bool(match_body.get("we_throw_first", first_move in {"throwing", "throw", "first"}))
+    mode = match_body.get("mode") or ("playoff" if match_body.get("is_playoff") else "regular")
+    match = repository.put_match(
+        {
+            "match_id": match_body.get("match_id"),
+            "week": match_body.get("week") or match_context.get("week"),
+            "date": match_body.get("date") or match_context.get("date"),
+            "location": match_body.get("location") or match_context.get("location"),
+            "home_team_id": match_body.get("home_team_id") or our_team_id,
+            "away_team_id": match_body.get("away_team_id") or opponent_team_id,
+            "our_team_id": our_team_id,
+            "opponent_team_id": opponent_team_id,
+            "our_team_name": our_team_name,
+            "opponent_team_name": opponent_name,
+            "mode": mode,
+            "status": "complete",
+            "we_throw_first": we_throw_first,
+            "our_roster": players_to_sl_map(our_players),
+            "their_roster": players_to_sl_map(opponent_players),
+            "source_context": match_context,
+        }
+    )
+
+    normalized_turns: list[dict[str, Any]] = []
+    for turn_body in sorted(turns_body, key=lambda turn: int(turn.get("turn_num", 0))):
+        our_score, their_score = score_tuple(
+            score=turn_body.get("score"),
+            our_score=turn_body.get("our_score"),
+            their_score=turn_body.get("their_score"),
+        )
+        our_name = _player_name(turn_body, match, side="our")
+        their_name = _player_name(turn_body, match, side="their")
+        our_sl = _skill_level(turn_body, match, our_name, side="our")
+        their_sl = _skill_level(turn_body, match, their_name, side="their")
+        normalized = validate_turn(
+            normalized_turns,
+            mode=mode,
+            our_player_name=our_name,
+            their_player_name=their_name,
+            our_sl=our_sl,
+            their_sl=their_sl,
+            our_score=our_score,
+            their_score=their_score,
+            is_our_dp=turn_body.get("is_our_dp"),
+            is_their_dp=turn_body.get("is_their_dp"),
+        )
+        normalized.update(
+            {
+                "our_player_id": str(turn_body.get("our_player_id") or player_id_from_name(our_name)),
+                "their_player_id": str(turn_body.get("their_player_id") or player_id_from_name(their_name)),
+            }
+        )
+        normalized_turns.append(normalized)
+
+    summary = summarize_match(match, normalized_turns)
+    if not summary["complete"]:
+        raise RuleViolation("A match can only be submitted after it is complete.")
+
+    repository.replace_turns(match["match_id"], normalized_turns)
+    repository.set_match_status(match["match_id"], "complete")
+    loaded = repository.get_match(match["match_id"])
+    return {"result": loaded, "error": None}
+
+
+def handle_history(_body: dict[str, Any], repository: MatchRepository, query: dict[str, str]) -> dict[str, Any]:
+    status = query.get("status", "complete")
+    limit = int(query.get("limit", "25"))
+    return {"result": build_history_response(repository, status=status, limit=limit), "error": None}
+
+
+def handle_eligible(body: dict[str, Any], _repository: MatchRepository) -> dict[str, Any]:
+    eligible = compute_eligible(
+        our_team=body["our_team"],
+        played_ours=body["played_ours"],
+        our_dp_happened=bool(body.get("our_dp_happened", False)),
+        total_sl_used=int(body["total_sl_used"]),
+        for_suggestion=bool(body.get("for_suggestion", True)),
+    )
+    return {"result": eligible, "error": None}
+
+
+def lambda_handler(event, context):  # noqa: ARG001
+    try:
+        method, path = _method_and_path(event)
+        if method == "OPTIONS":
+            return _response(200, {})
+
+        body = _parse_body(event)
+        query = event.get("queryStringParameters") or {}
+        repository = MatchRepository()
+
+        logger.info("Invoking %s %s", method, path)
+        if method == "POST" and path == "/match":
+            result = handle_match(body, repository)
+        elif method == "POST" and path == "/suggest":
+            result = handle_suggest(body, repository)
+        elif method == "POST" and path == "/chat":
+            result = handle_chat(body, repository)
+        elif method == "POST" and path == "/result":
+            result = handle_result(body, repository)
+        elif method == "POST" and path == "/submit":
+            result = handle_submit(body, repository)
+        elif method == "GET" and path == "/history":
+            result = handle_history(body, repository, query)
+        elif method == "POST" and path == "/eligible":
+            result = handle_eligible(body, repository)
+        else:
+            return _response(404, {"result": None, "error": f"Unknown route: {method} {path}"})
+
+        return _response(200, result)
+
+    except NotFound as exc:
+        return _response(404, {"result": None, "error": str(exc)})
+    except (KeyError, ValueError, RuleViolation) as exc:
+        logger.warning("Client error: %s", exc)
+        return _response(400, {"result": None, "error": str(exc)})
+    except RuntimeError as exc:
+        logger.warning("Dependency error: %s", exc)
+        return _response(502, {"result": None, "error": str(exc)})
+    except Exception:  # noqa: BLE001
+        logger.exception("Unhandled error in lambda_handler")
+        return _response(500, {"result": None, "error": "Internal server error"})
+
+
+def _method_and_path(event: dict[str, Any]) -> tuple[str, str]:
+    request_context = event.get("requestContext", {})
+    http_context = request_context.get("http", {})
+    method = event.get("httpMethod") or http_context.get("method") or "GET"
+    path = event.get("path") or event.get("rawPath") or "/"
+    return method.upper(), path
+
+
+def _parse_body(event: dict[str, Any]) -> dict[str, Any]:
+    raw_body = event.get("body") or "{}"
+    if isinstance(raw_body, dict):
+        return raw_body
+    if event.get("isBase64Encoded"):
+        import base64
+
+        raw_body = base64.b64decode(raw_body).decode("utf-8")
+    return json.loads(raw_body)
+
+
+def _context_from_body_or_match(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    if body.get("match_context"):
+        return body["match_context"]
+    if body.get("match_id"):
+        loaded = repository.get_match(str(body["match_id"]))
+        if not loaded:
+            raise NotFound(f"Match {body['match_id']} not found")
+        return loaded["match_context"]
+    return {}
+
+
+def _enrich_with_h2h(match_context: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    enriched = dict(match_context or {})
+    h2h = dict(enriched.get("head_to_head", {}))
+    for player_name in (enriched.get("our_roster") or {}).keys():
+        player_id = player_id_from_name(player_name)
+        try:
+            h2h[player_name] = repository.get_player_h2h(player_id)
+        except Exception as exc:  # noqa: BLE001 - h2h is helpful, not route-critical.
+            logger.info("Skipping H2H enrichment for %s: %s", player_name, exc)
+    enriched["head_to_head"] = h2h
+    return enriched
+
+
+def _player_name(turn_body: dict[str, Any], match: dict[str, Any], *, side: str) -> str:
+    key_prefixes = ["our"] if side == "our" else ["their", "opponent"]
+    for prefix in key_prefixes:
+        value = turn_body.get(f"{prefix}_player_name") or turn_body.get(f"{prefix}_player")
+        if value:
+            return str(value)
+
+    player_id = None
+    for prefix in key_prefixes:
+        player_id = turn_body.get(f"{prefix}_player_id")
+        if player_id:
+            break
+    roster = match.get("our_roster" if side == "our" else "their_roster", {})
+    if player_id:
+        expected_id = str(player_id)
+        for name in roster:
+            if player_id_from_name(name) == expected_id:
+                return name
+    raise ValueError(f"{side}_player_name is required")
+
+
+def _skill_level(turn_body: dict[str, Any], match: dict[str, Any], name: str, *, side: str) -> int:
+    if side == "our":
+        explicit = turn_body.get("our_sl_snapshot") or turn_body.get("our_sl")
+        roster = match.get("our_roster", {})
+    else:
+        explicit = turn_body.get("their_sl_snapshot") or turn_body.get("their_sl") or turn_body.get("opponent_sl")
+        roster = match.get("their_roster", {})
+    if explicit is not None:
+        return int(explicit)
+    if name not in roster:
+        raise ValueError(f"Skill level for {name} is required")
+    return int(roster[name])
+
+
+def _response(status: int, body: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "statusCode": status,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        },
+        "body": json.dumps(body, default=str),
+    }

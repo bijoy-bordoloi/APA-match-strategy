@@ -1,0 +1,10 @@
+.git/
+.aws-sam/
+frontend/node_modules/
+frontend/dist/
+package/
+function.zip
+*.code-workspace
+payload.json
+response.json
+test_*.json

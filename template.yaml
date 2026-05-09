@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: APA 8-ball match strategy API with DynamoDB and Groq-backed Lambda.
+
+Parameters:
+  GroqApiKeyParameterName:
+    Type: String
+    Default: /apa-match-engine/GROQ_API_KEY
+    Description: SSM Parameter Store name containing the Groq API key.
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 30
+    MemorySize: 256
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        APA_TABLE_NAME: !Ref ApaMatchTable
+        GROQ_API_KEY_PARAM: !Ref GroqApiKeyParameterName
+        GROQ_MODEL: llama-3.1-8b-instant
+
+Resources:
+  ApaMatchHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+
+  ApaMatchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: lambda_function.lambda_handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+              Resource:
+                - !GetAtt ApaMatchTable.Arn
+                - !Sub "${ApaMatchTable.Arn}/index/StatusDateIndex"
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GroqApiKeyParameterName}"
+      Events:
+        CreateOrLoadMatch:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApaMatchHttpApi
+            Path: /match
+            Method: POST
+        Suggest:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApaMatchHttpApi
+            Path: /suggest
+            Method: POST
+        Chat:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApaMatchHttpApi
+            Path: /chat
+            Method: POST
+        Result:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApaMatchHttpApi
+            Path: /result
+            Method: POST
+        Submit:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApaMatchHttpApi
+            Path: /submit
+            Method: POST
+        History:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApaMatchHttpApi
+            Path: /history
+            Method: GET
+        Eligible:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApaMatchHttpApi
+            Path: /eligible
+            Method: POST
+
+  ApaMatchTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: apa-match-engine
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: StatusDateIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+Outputs:
+  ApiUrl:
+    Description: HTTP API base URL.
+    Value: !Sub "https://${ApaMatchHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+  TableName:
+    Description: DynamoDB single table name.
+    Value: !Ref ApaMatchTable

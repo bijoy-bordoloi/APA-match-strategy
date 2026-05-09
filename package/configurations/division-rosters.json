@@ -1,0 +1,233 @@
+[
+  {
+    "name": "Satire Squad",
+    "roster": [
+      {
+        "name": "Kapil Londhe",
+        "sl": 6
+      },
+      {
+        "name": "Saksham Sijariya",
+        "sl": 5
+      },
+      {
+        "name": "Shahaji Arkile",
+        "sl": 3
+      },
+      {
+        "name": "Piyush Zode",
+        "sl": 6
+      },
+      {
+        "name": "Avinash Veershetty",
+        "sl": 2
+      },
+      {
+        "name": "Tamil \"DR. T\" Manickavelu",
+        "sl": 5
+      },
+      {
+        "name": "Arvind Kumar",
+        "sl": 4
+      },
+      {
+        "name": "Nirmal Mantri",
+        "sl": 2
+      }
+    ]
+  },
+  {
+    "name": "The Lucky Losers",
+    "roster": [
+      {
+        "name": "Todd \"The Lucky Loser\" Shirley",
+        "sl": 6
+      },
+      {
+        "name": "Noam King",
+        "sl": 4
+      },
+      {
+        "name": "Tarn Faulkner",
+        "sl": 4
+      },
+      {
+        "name": "James Wolf",
+        "sl": 4
+      },
+      {
+        "name": "William Plunkett",
+        "sl": 5
+      },
+      {
+        "name": "Chad Reid",
+        "sl": 0
+      },
+      {
+        "name": "Whitney Reid",
+        "sl": 0
+      },
+      {
+        "name": "Doug McKnight",
+        "sl": 5
+      }
+    ]
+  },
+  {
+    "name": "Poolhall Junkies",
+    "roster": [
+      {
+        "name": "Luis Mazon",
+        "sl": 3
+      },
+      {
+        "name": "Patrick Casey",
+        "sl": 5
+      },
+      {
+        "name": "Neng Xue",
+        "sl": 3
+      },
+      {
+        "name": "Meaghan Jowdy",
+        "sl": 2
+      },
+      {
+        "name": "Kirk Boyens",
+        "sl": 6
+      },
+      {
+        "name": "Adam Hunnicutt",
+        "sl": 4
+      }
+    ]
+  },
+  {
+    "name": "Scratches Happen",
+    "roster": [
+      {
+        "name": "Shemal Medawattage",
+        "sl": 6
+      },
+      {
+        "name": "Cheryl Medawattage",
+        "sl": 5
+      },
+      {
+        "name": "Cristhian Rachet",
+        "sl": 6
+      },
+      {
+        "name": "Lina Blinova",
+        "sl": 3
+      },
+      {
+        "name": "Debi Beyerlin",
+        "sl": 3
+      },
+      {
+        "name": "Greg Vodolazov",
+        "sl": 3
+      },
+      {
+        "name": "Amir Manavi",
+        "sl": 0
+      }
+    ]
+  },
+  {
+    "name": "The Anti Villian League",
+    "roster": [
+      {
+        "name": "Bijoy Bordoloi",
+        "sl": 7
+      },
+      {
+        "name": "Kim-Khanh Van",
+        "sl": 2
+      },
+      {
+        "name": "Tien Truong",
+        "sl": 5
+      },
+      {
+        "name": "David Remer",
+        "sl": 4
+      },
+      {
+        "name": "Jeff Highbarger",
+        "sl": 2
+      },
+      {
+        "name": "Kellan Thai",
+        "sl": 2
+      },
+      {
+        "name": "Krishnamurthy Ganesan",
+        "sl": 6
+      }
+    ]
+  },
+  {
+    "name": "Golden Sunrise",
+    "roster": [
+      {
+        "name": "Mehul Ppaandhii",
+        "sl": 5
+      },
+      {
+        "name": "Art Tsihlakis",
+        "sl": 2
+      },
+      {
+        "name": "Sabrina Gonzalez",
+        "sl": 2
+      },
+      {
+        "name": "Martha Padilla",
+        "sl": 2
+      },
+      {
+        "name": "David Padilla",
+        "sl": 4
+      },
+      {
+        "name": "Amandeep Gupta",
+        "sl": 4
+      },
+      {
+        "name": "Janmejay Singh",
+        "sl": 5
+      }
+    ]
+  },
+  {
+    "name": "2 Drink Minimum",
+    "roster": [
+      {
+        "name": "Matt Kruse",
+        "sl": 4
+      },
+      {
+        "name": "Kim Kruse",
+        "sl": 3
+      },
+      {
+        "name": "Kristi Corcoran",
+        "sl": 2
+      },
+      {
+        "name": "Justin Kendle",
+        "sl": 5
+      },
+      {
+        "name": "Peter Knoke",
+        "sl": 0
+      },
+      {
+        "name": "Nadya Bobrova",
+        "sl": 3
+      }
+    ]
+  }
+]

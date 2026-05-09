@@ -1,1 +1,5 @@
 myenv/
+__pycache__/
+.aws-sam/
+frontend/dist/
+frontend/node_modules/
