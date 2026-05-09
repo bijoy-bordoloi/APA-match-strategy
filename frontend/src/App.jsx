@@ -26,6 +26,7 @@ import {
   enqueueWrite,
   flushQueue,
   getHistory,
+  getRosters,
   getSuggestion,
   hasApiBase,
   loadQueue,
@@ -59,6 +60,7 @@ export default function App() {
       scheduled: DEFAULT_SCHEDULED.includes(player.name),
     })),
   );
+  const [opponentTeams, setOpponentTeams] = useState(OPPONENT_TEAMS);
   const [opponentName, setOpponentName] = useState(OPPONENT_TEAMS[0].name);
   const [opponentTeamId, setOpponentTeamId] = useState(OPPONENT_TEAMS[0].team_id);
   const [opponentPlayers, setOpponentPlayers] = useState(OPPONENT_TEAMS[0].players);
@@ -132,6 +134,21 @@ export default function App() {
     }
   }, [summary.complete, screen]);
 
+  useEffect(() => {
+    if (!hasApiBase()) return;
+    getRosters().then((data) => {
+      if (data.opponent_teams?.length) {
+        setOpponentTeams(data.opponent_teams);
+        setOpponentName(data.opponent_teams[0].name);
+        setOpponentTeamId(data.opponent_teams[0].team_id);
+        setOpponentPlayers(data.opponent_teams[0].players);
+      }
+      if (data.our_team?.players?.length) {
+        setOurPlayers(data.our_team.players.map((p) => ({ ...p, scheduled: false })));
+      }
+    }).catch(() => {});
+  }, []);
+
   function updateSetup(key, value) {
     setSetup((current) => ({ ...current, [key]: value }));
   }
@@ -143,7 +160,7 @@ export default function App() {
       setOpponentPlayers([{ name: '', skill_level: 3 }]);
       return;
     }
-    const team = OPPONENT_TEAMS.find((item) => item.team_id === teamId);
+    const team = opponentTeams.find((item) => item.team_id === teamId);
     if (!team) return;
     setOpponentTeamId(team.team_id);
     setOpponentName(team.name);
@@ -455,6 +472,7 @@ export default function App() {
           updateSetup={updateSetup}
           ourPlayers={ourPlayers}
           setOurPlayers={setOurPlayers}
+          opponentTeams={opponentTeams}
           opponentName={opponentName}
           opponentTeamId={opponentTeamId}
           opponentPlayers={opponentPlayers}
@@ -533,6 +551,7 @@ function SetupView({
   updateSetup,
   ourPlayers,
   setOurPlayers,
+  opponentTeams,
   opponentName,
   opponentTeamId,
   opponentPlayers,
@@ -601,7 +620,7 @@ function SetupView({
         <label>
           Team
           <select value={opponentTeamId} onChange={(event) => selectOpponent(event.target.value)}>
-            {OPPONENT_TEAMS.map((team) => (
+            {opponentTeams.map((team) => (
               <option key={team.team_id} value={team.team_id}>
                 {team.name}
               </option>

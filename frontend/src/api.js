@@ -32,6 +32,11 @@ export async function getHistory() {
   return result.result || result;
 }
 
+export async function getRosters() {
+  const result = await request('/rosters', { method: 'GET' });
+  return result.result || result;
+}
+
 export function enqueueWrite(payload, path = '/result') {
   const queue = loadQueue();
   queue.push({

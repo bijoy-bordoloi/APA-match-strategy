@@ -388,6 +388,39 @@ def handle_history(_body: dict[str, Any], repository: MatchRepository, query: di
     return {"result": build_history_response(repository, status=status, limit=limit), "error": None}
 
 
+def handle_rosters(_body: dict[str, Any], _repository: MatchRepository) -> dict[str, Any]:
+    from config_loader import get_rosters_data
+
+    raw = get_rosters_data()
+    teams = raw[0]["data"]["division"]["teams"]
+
+    our_team = None
+    opponent_teams = []
+
+    for team in teams:
+        if team.get("isBye"):
+            continue
+        players = [
+            {"name": p["displayName"], "skill_level": p["skillLevel"]}
+            for p in team.get("roster", [])
+            if p["skillLevel"] > 0
+        ]
+        if "anti vill" in team["name"].lower():
+            our_team = {
+                "team_id": "anti-villain-league",
+                "name": "Anti-Villain League",
+                "players": players,
+            }
+        else:
+            opponent_teams.append({
+                "team_id": slugify(team["name"]),
+                "name": team["name"],
+                "players": players,
+            })
+
+    return {"result": {"our_team": our_team, "opponent_teams": opponent_teams}, "error": None}
+
+
 def handle_eligible(body: dict[str, Any], _repository: MatchRepository) -> dict[str, Any]:
     eligible = compute_eligible(
         our_team=body["our_team"],
@@ -422,6 +455,8 @@ def lambda_handler(event, context):  # noqa: ARG001
             result = handle_submit(body, repository)
         elif method == "GET" and path == "/history":
             result = handle_history(body, repository, query)
+        elif method == "GET" and path == "/rosters":
+            result = handle_rosters(body, repository)
         elif method == "POST" and path == "/eligible":
             result = handle_eligible(body, repository)
         else:
