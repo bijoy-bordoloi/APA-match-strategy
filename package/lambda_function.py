@@ -480,6 +480,59 @@ def handle_rosters(_body: dict[str, Any], _repository: MatchRepository, query: d
     return {"result": {"our_team": our_team, "opponent_teams": opponent_teams, "match_info": match_info}, "error": None}
 
 
+def handle_players(body: dict[str, Any], query: dict[str, str]) -> dict[str, Any]:
+    from player_data import get_player, get_sessions
+
+    name      = query.get("name") or body.get("name")
+    member_id = query.get("member_id") or body.get("member_id")
+
+    if not name and not member_id:
+        raise ValueError("Provide 'name' or 'member_id' as a query param or body field")
+
+    player = get_player(name=name, member_id=member_id)
+    if not player:
+        raise NotFound(f"Player not found: {name or member_id}")
+
+    sessions = get_sessions(player["member_id"])
+    return {"result": {"player": player, "sessions": sessions}, "error": None}
+
+
+def handle_players_search(body: dict[str, Any]) -> dict[str, Any]:
+    from player_data import search_chunks, neon_query
+
+    query = str(body.get("query", "")).strip()
+    if not query:
+        raise ValueError("'query' field is required")
+
+    # Structured leaderboard shortcuts
+    q_lower = query.lower()
+    if "rackless" in q_lower:
+        rows = neon_query(
+            "SELECT display_name, eb_rackless, eb_win_pct, eb_matches_played "
+            "FROM players WHERE eb_rackless > 0 ORDER BY eb_rackless DESC LIMIT 10"
+        )
+        return {"result": {"type": "leaderboard", "field": "rackless", "rows": rows}, "error": None}
+
+    if "break" in q_lower and ("run" in q_lower or "and" in q_lower):
+        rows = neon_query(
+            "SELECT display_name, eb_break_and_runs, nb_break_and_runs "
+            "FROM players WHERE eb_break_and_runs > 0 OR nb_break_and_runs > 0 "
+            "ORDER BY (COALESCE(eb_break_and_runs,0)+COALESCE(nb_break_and_runs,0)) DESC LIMIT 10"
+        )
+        return {"result": {"type": "leaderboard", "field": "break_and_runs", "rows": rows}, "error": None}
+
+    if "win" in q_lower and ("rate" in q_lower or "pct" in q_lower or "percent" in q_lower or "best" in q_lower):
+        rows = neon_query(
+            "SELECT display_name, eb_matches_won, eb_matches_played, eb_win_pct "
+            "FROM players WHERE eb_matches_played >= 10 ORDER BY eb_win_pct DESC LIMIT 10"
+        )
+        return {"result": {"type": "leaderboard", "field": "win_pct", "rows": rows}, "error": None}
+
+    # Fall back to full-text chunk search
+    chunks = search_chunks(query, top_k=int(body.get("top_k", 5)))
+    return {"result": {"type": "chunks", "chunks": chunks}, "error": None}
+
+
 def handle_eligible(body: dict[str, Any], _repository: MatchRepository) -> dict[str, Any]:
     eligible = compute_eligible(
         our_team=body["our_team"],
@@ -516,6 +569,10 @@ def lambda_handler(event, context):  # noqa: ARG001
             result = handle_history(body, repository, query)
         elif method == "GET" and path == "/rosters":
             result = handle_rosters(body, repository, query)
+        elif method in {"GET", "POST"} and path == "/players":
+            result = handle_players(body, query)
+        elif method == "POST" and path == "/players/search":
+            result = handle_players_search(body)
         elif method == "POST" and path == "/eligible":
             result = handle_eligible(body, repository)
         else:

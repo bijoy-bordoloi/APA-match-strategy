@@ -739,33 +739,55 @@ th {
     display: grid;
   }
 
+  .topbar h1 {
+    font-size: 1.25rem;
+  }
+
   .status-strip {
     justify-content: flex-start;
   }
 
   .tabs {
-    gap: 6px;
-  }
-
-  .tabs button {
-    font-size: 0.78rem;
     gap: 4px;
   }
 
-  .field-grid,
-  .score-grid,
-  .edit-row,
+  .tabs button {
+    font-size: 0.76rem;
+    gap: 3px;
+    padding: 6px 4px;
+  }
+
+  /* Roster edit rows: name + SL + delete all on one line */
+  .edit-row {
+    grid-template-columns: minmax(0, 1fr) 60px 40px;
+    gap: 6px;
+  }
+
+  /* With checkbox column: squeeze to icon-only, keep everything inline */
   .edit-row:has(.check-label) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 30px minmax(0, 1fr) 60px 40px;
+    gap: 6px;
   }
 
-  .span-2 {
-    grid-column: auto;
+  /* Hide "Active" text on mobile — show only the checkbox */
+  .check-label {
+    font-size: 0;
+    min-height: 44px;
+    gap: 0;
   }
 
-  .edit-row button {
-    width: 100%;
+  .check-label input[type="checkbox"] {
+    width: 20px;
+    min-height: 20px;
+    flex-shrink: 0;
   }
+
+  /* Score buttons stay side-by-side (3 columns) */
+  .score-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* field-grid stays 2-col so week + date remain side-by-side */
 
   .action-band {
     align-items: stretch;
@@ -774,5 +796,10 @@ th {
 
   .live-header {
     grid-template-columns: 1fr;
+  }
+
+  /* Summary turns table: allow natural width, rely on table-scroll for overflow */
+  table {
+    min-width: 0;
   }
 }

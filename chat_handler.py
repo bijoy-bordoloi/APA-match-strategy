@@ -34,10 +34,20 @@ the current mode goal, and the recorded match history."""
 
 def generate_response(message: str, match_context: dict[str, Any], history: list[dict[str, str]] | None) -> str:
     """Generate a freeform chat response for the current match context."""
+    enriched = dict(match_context or {})
+    try:
+        from player_data import build_player_context
+        player_ctx = build_player_context(message)
+        if player_ctx:
+            enriched["player_stats"] = player_ctx
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("player stats enrichment failed: %s", exc)
+
     messages = _build_messages(
         system_prompt=CHAT_SYSTEM_PROMPT,
         message=message,
-        match_context=match_context,
+        match_context=enriched,
         history=history or [],
     )
     return _query_groq(messages, temperature=0.2)
