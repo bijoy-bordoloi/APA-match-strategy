@@ -1,14 +1,15 @@
 """APA Match Engine — API Gateway Lambda backend.
 
 Routes implemented for the mobile React app:
-  POST /match    create or load a match session
-  POST /suggest  get a throw/counter recommendation
-  POST /chat     freeform LLM chat on match context
-  POST /result   record a completed turn
-  POST /submit   create/update a complete match result
-  GET  /history  list past matches and player stats
-
-The legacy POST /eligible route is retained for existing CLI/test payloads.
+  POST /match           create or load a match session
+  POST /suggest         get a throw/counter recommendation
+  POST /chat            freeform LLM chat on match context
+  POST /result          record a completed turn
+  POST /submit          create/update a complete match result
+  GET  /history         list past matches and player stats
+  GET  /rosters         rosters, schedule, and match info from S3
+  GET|POST /players     look up a player's stats from Neon
+  POST /players/search  full-text or leaderboard search
 """
 
 from __future__ import annotations
@@ -49,46 +50,8 @@ def _build_strategy(strategy_name: str, is_playoff: bool, match_context: dict[st
         from strategies import NeutralStrategy
 
         return NeutralStrategy(is_playoff=is_playoff)
-    if strategy_name == "groq":
-        from groqstrategy import GroqStrategy
-        import os
-
-        return GroqStrategy(
-            api_key=os.environ.get("GROQ_API_KEY", ""),
-            match_context=match_context,
-            is_playoff=is_playoff,
-        )
     raise ValueError(f"Unknown strategy: {strategy_name!r}")
 
-
-def compute_eligible(
-    our_team: dict[str, int],
-    played_ours: list,
-    our_dp_happened: bool,
-    total_sl_used: int,
-    for_suggestion: bool,
-) -> dict[str, int]:
-    """Legacy helper used by the original CLI client."""
-    counts: dict[str, int] = {}
-    for entry in played_ours:
-        name = entry[0]
-        counts[name] = counts.get(name, 0) + 1
-
-    eligible: dict[str, int] = {}
-    for name, sl in our_team.items():
-        play_count = counts.get(name, 0)
-        if play_count >= 2:
-            continue
-        if play_count == 1 and our_dp_happened:
-            continue
-        room = 23 - total_sl_used
-        if for_suggestion:
-            if int(sl) > room + 2:
-                continue
-        elif int(sl) > room:
-            continue
-        eligible[name] = int(sl)
-    return eligible
 
 
 def handle_match(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
@@ -533,16 +496,6 @@ def handle_players_search(body: dict[str, Any]) -> dict[str, Any]:
     return {"result": {"type": "chunks", "chunks": chunks}, "error": None}
 
 
-def handle_eligible(body: dict[str, Any], _repository: MatchRepository) -> dict[str, Any]:
-    eligible = compute_eligible(
-        our_team=body["our_team"],
-        played_ours=body["played_ours"],
-        our_dp_happened=bool(body.get("our_dp_happened", False)),
-        total_sl_used=int(body["total_sl_used"]),
-        for_suggestion=bool(body.get("for_suggestion", True)),
-    )
-    return {"result": eligible, "error": None}
-
 
 def lambda_handler(event, context):  # noqa: ARG001
     try:
@@ -573,8 +526,6 @@ def lambda_handler(event, context):  # noqa: ARG001
             result = handle_players(body, query)
         elif method == "POST" and path == "/players/search":
             result = handle_players_search(body)
-        elif method == "POST" and path == "/eligible":
-            result = handle_eligible(body, repository)
         else:
             return _response(404, {"result": None, "error": f"Unknown route: {method} {path}"})
 

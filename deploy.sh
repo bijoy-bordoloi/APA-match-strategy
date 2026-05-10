@@ -24,8 +24,7 @@ deploy_lambda() {
 
   # Sync source files into the deployment package directory
   for f in lambda_function.py chat_handler.py data_access.py match_rules.py \
-            config_loader.py groqstrategy.py strategies.py prompts.py \
-            mistralstrategy.py aistrategy.py session_loader.py player_data.py; do
+            config_loader.py strategies.py prompts.py player_data.py; do
     [ -f "$DIR/$f" ] && cp "$DIR/$f" "$DIR/package/$f"
   done
 
