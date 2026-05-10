@@ -992,30 +992,49 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
           {busy === 'history' && <RefreshCw className="spin" size={18} />}
         </div>
         <div className="history-list">
-          {historyData.matches.map((match) => (
-            <article key={match.match_id} className="history-item">
-              <button onClick={() => setExpandedHistory(expandedHistory === match.match_id ? null : match.match_id)}>
-                <span>
-                  <strong>{match.date || 'No date'}</strong>
-                  {match.opponent_team_name || match.away_team_id}
-                </span>
-                <span>{match.summary?.our_score}-{match.summary?.their_score}</span>
-              </button>
-              {expandedHistory === match.match_id && (
-                <div className="history-turns">
-                  {match.turns.map((turn) => (
-                    <p key={turn.turn_num}>
-                      {turn.turn_num}. {turn.our_player_name} vs {turn.their_player_name}: {turn.our_score}-{turn.their_score}
-                    </p>
-                  ))}
-                  <button className="ghost-button" onClick={() => onReEdit(match)}>
-                    <Pencil size={18} />
-                    Re-edit
-                  </button>
-                </div>
-              )}
-            </article>
-          ))}
+          {historyData.matches.map((match) => {
+            const ourWins = match.summary?.our_wins ?? 0;
+            const theirWins = match.summary?.their_wins ?? 0;
+            const won = ourWins > theirWins;
+            const ourScore = match.summary?.our_score;
+            const theirScore = match.summary?.their_score;
+            const scoreStr = ourScore != null && theirScore != null ? `${ourScore}-${theirScore}` : '—';
+            return (
+              <article key={match.match_id} className="history-item">
+                <button onClick={() => setExpandedHistory(expandedHistory === match.match_id ? null : match.match_id)}>
+                  <span>
+                    <strong>{match.date || 'No date'}</strong>
+                    <span className="history-opponent">{match.opponent_team_name || match.away_team_id || 'Unknown'}</span>
+                  </span>
+                  <span className="history-result">
+                    <strong>{scoreStr}</strong>
+                    <span className={`result-badge${won ? '' : ' loss'}`}>{won ? 'W' : 'L'}</span>
+                  </span>
+                </button>
+                {expandedHistory === match.match_id && (
+                  <div className="history-turns">
+                    {match.turns.map((turn) => {
+                      const turnWon = Number(turn.our_score) >= 2;
+                      return (
+                        <div key={turn.turn_num} className="turn-row">
+                          <span className="turn-players">
+                            {turn.turn_num}. {turn.our_player_name} vs {turn.their_player_name}
+                          </span>
+                          <span className={`turn-score${turnWon ? ' win' : ''}`}>
+                            {turn.our_score}-{turn.their_score}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    <button className="ghost-button" onClick={() => onReEdit(match)}>
+                      <Pencil size={18} />
+                      Edit
+                    </button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
           {!historyData.matches.length && busy !== 'history' && <p className="empty-state">No completed matches found.</p>}
         </div>
       </section>

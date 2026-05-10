@@ -646,18 +646,76 @@ th {
   text-align: left;
 }
 
+.history-opponent {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.history-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.history-result strong {
+  font-size: 1.05rem;
+}
+
+.result-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid var(--green);
+  min-height: unset;
+}
+
+.result-badge.loss {
+  background: var(--red-soft);
+  color: var(--red);
+  border-color: var(--red);
+}
+
 .history-turns {
   border-top: 1px solid var(--line);
   padding: 8px 12px;
-  color: var(--muted);
+  display: grid;
+  gap: 4px;
 }
 
-.history-turns p {
-  margin: 6px 0;
+.turn-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.turn-players {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.turn-score {
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.turn-score.win {
+  color: var(--green);
 }
 
 .history-turns .ghost-button {
-  margin-top: 8px;
+  margin-top: 6px;
+  justify-self: start;
 }
 
 .stat-line {
