@@ -5,33 +5,9 @@
                 "id": 433395,
                 "teams": [
                     {
-                        "isBye": true,
-                        "id": 13045440,
-                        "name": "Bye",
-                        "number": "45508",
-                        "league": {
-                            "id": 1498,
-                            "slug": "esapa",
-                            "__typename": "League"
-                        },
-                        "division": {
-                            "id": 433395,
-                            "type": "EIGHT",
-                            "__typename": "Division"
-                        },
-                        "roster": [],
-                        "__typename": "Team",
-                        "location": {
-                            "id": 87357,
-                            "name": "No Match This Week",
-                            "address": null,
-                            "__typename": "HostLocation"
-                        }
-                    },
-                    {
                         "isBye": false,
                         "id": 13043723,
-                        "name": "Satire Squad",
+                        "name": "Cue-tiyapa Squad",
                         "number": "45501",
                         "league": {
                             "id": 1498,
@@ -595,6 +571,21 @@
                                     "id": 3469958,
                                     "__typename": "Member"
                                 }
+                            },
+                            {
+                                "id": 92344939,
+                                "memberNumber": "98313349",
+                                "displayName": "Prateek Joshua Thotlapalem",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 4,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3214493,
+                                    "__typename": "Member"
+                                }
                             }
                         ],
                         "__typename": "Team",
@@ -716,17 +707,17 @@
                                 }
                             },
                             {
-                                "id": 92305337,
-                                "memberNumber": "98311676",
-                                "displayName": "Krishnamurthy Ganesan",
+                                "id": 92366563,
+                                "memberNumber": "98312381",
+                                "displayName": "Ron Piell",
                                 "matchesWon": 0,
                                 "matchesPlayed": 0,
                                 "pa": 0,
                                 "ppm": 0,
-                                "skillLevel": 6,
+                                "skillLevel": 4,
                                 "__typename": "EightBallPlayer",
                                 "member": {
-                                    "id": 2364392,
+                                    "id": 2504739,
                                     "__typename": "Member"
                                 }
                             }
@@ -909,6 +900,21 @@
                         },
                         "roster": [
                             {
+                                "id": 92319566,
+                                "memberNumber": "98314026",
+                                "displayName": "Nadya Bobrova",
+                                "matchesWon": 0,
+                                "matchesPlayed": 0,
+                                "pa": 0,
+                                "ppm": 0,
+                                "skillLevel": 3,
+                                "__typename": "EightBallPlayer",
+                                "member": {
+                                    "id": 3346476,
+                                    "__typename": "Member"
+                                }
+                            },
+                            {
                                 "id": 92319558,
                                 "memberNumber": "98309543",
                                 "displayName": "Matt Kruse",
@@ -920,21 +926,6 @@
                                 "__typename": "EightBallPlayer",
                                 "member": {
                                     "id": 3199848,
-                                    "__typename": "Member"
-                                }
-                            },
-                            {
-                                "id": 92319559,
-                                "memberNumber": "98314198",
-                                "displayName": "Kim Kruse",
-                                "matchesWon": 0,
-                                "matchesPlayed": 0,
-                                "pa": 0,
-                                "ppm": 0,
-                                "skillLevel": 3,
-                                "__typename": "EightBallPlayer",
-                                "member": {
-                                    "id": 3368959,
                                     "__typename": "Member"
                                 }
                             },
@@ -984,9 +975,9 @@
                                 }
                             },
                             {
-                                "id": 92319566,
-                                "memberNumber": "98314026",
-                                "displayName": "Nadya Bobrova",
+                                "id": 92319559,
+                                "memberNumber": "98314198",
+                                "displayName": "Kim Kruse",
                                 "matchesWon": 0,
                                 "matchesPlayed": 0,
                                 "pa": 0,
@@ -994,7 +985,7 @@
                                 "skillLevel": 3,
                                 "__typename": "EightBallPlayer",
                                 "member": {
-                                    "id": 3346476,
+                                    "id": 3368959,
                                     "__typename": "Member"
                                 }
                             },
@@ -1038,6 +1029,30 @@
                                 "name": "Off The Rails",
                                 "__typename": "Address"
                             },
+                            "__typename": "HostLocation"
+                        }
+                    },
+                    {
+                        "isBye": true,
+                        "id": 13045440,
+                        "name": "Bye",
+                        "number": "45508",
+                        "league": {
+                            "id": 1498,
+                            "slug": "esapa",
+                            "__typename": "League"
+                        },
+                        "division": {
+                            "id": 433395,
+                            "type": "EIGHT",
+                            "__typename": "Division"
+                        },
+                        "roster": [],
+                        "__typename": "Team",
+                        "location": {
+                            "id": 87357,
+                            "name": "No Match This Week",
+                            "address": null,
                             "__typename": "HostLocation"
                         }
                     }

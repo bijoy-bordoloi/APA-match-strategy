@@ -8,13 +8,35 @@ logger.setLevel(logging.INFO)
 # Config loading abstraction — easily switch between S3/local
 _config_cache = {}
 
+def _parse_schedule_csv(lines: list[str]) -> list[dict]:
+    """Parse the AVL schedule CSV, which has a 2-row preamble and sparse Week column."""
+    import csv
+    # Skip preamble rows — find the first line that contains 'Week'
+    start = next((i for i, line in enumerate(lines) if ",Week," in line), 0)
+    reader = csv.DictReader(lines[start:])
+    # Strip whitespace from keys and values; forward-fill Week and Date
+    rows = []
+    last_week, last_date = "", ""
+    for row in reader:
+        clean = {k.strip(): v.strip() for k, v in row.items() if k}
+        week_val = clean.get("Week", "")
+        date_val = clean.get("Date", "")
+        if week_val:
+            last_week, last_date = week_val, date_val
+        if not last_week:
+            continue
+        clean["Week"] = last_week
+        clean["Date"] = last_date
+        rows.append(clean)
+    return rows
+
+
 def _load_config_from_local(filename: str) -> dict:
     """Load config from local file (current approach)."""
     path = f"configurations/{filename}"
     with open(path, 'r') as f:
         if filename.endswith('.csv'):
-            import csv
-            return list(csv.DictReader(f))
+            return _parse_schedule_csv(f.readlines())
         else:
             return json.load(f)
 
@@ -27,9 +49,7 @@ def _load_config_from_s3(bucket: str, key: str):
     content = response['Body'].read().decode('utf-8')
 
     if key.endswith('.csv'):
-        import csv
-        import io
-        return list(csv.DictReader(io.StringIO(content)))
+        return _parse_schedule_csv(content.splitlines(keepends=True))
     else:
         return json.loads(content)
 
