@@ -32,8 +32,9 @@ export async function getHistory() {
   return result.result || result;
 }
 
-export async function getRosters() {
-  const result = await request('/rosters', { method: 'GET' });
+export async function getRosters(week) {
+  const path = week ? `/rosters?week=${week}` : '/rosters';
+  const result = await request(path, { method: 'GET' });
   return result.result || result;
 }
 

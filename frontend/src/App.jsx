@@ -21,7 +21,7 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   enqueueWrite,
   flushQueue,
@@ -34,7 +34,6 @@ import {
   submitMatch,
 } from './api.js';
 import {
-  DEFAULT_SCHEDULED,
   OPPONENT_TEAMS,
   OUR_TEAM,
   QUICK_QUESTIONS,
@@ -55,10 +54,7 @@ export default function App() {
     first_move: 'throwing',
   });
   const [ourPlayers, setOurPlayers] = useState(
-    OUR_TEAM.players.map((player) => ({
-      ...player,
-      scheduled: DEFAULT_SCHEDULED.includes(player.name),
-    })),
+    OUR_TEAM.players.map((player) => ({ ...player, scheduled: false })),
   );
   const [opponentTeams, setOpponentTeams] = useState(OPPONENT_TEAMS);
   const [opponentName, setOpponentName] = useState(OPPONENT_TEAMS[0].name);
@@ -134,20 +130,34 @@ export default function App() {
     }
   }, [summary.complete, screen]);
 
+  const lastFetchedWeek = React.useRef(null);
   useEffect(() => {
-    if (!hasApiBase()) return;
-    getRosters().then((data) => {
+    if (!hasApiBase() || setup.week === lastFetchedWeek.current) return;
+    lastFetchedWeek.current = setup.week;
+    getRosters(setup.week).then((data) => {
       if (data.opponent_teams?.length) {
         setOpponentTeams(data.opponent_teams);
-        setOpponentName(data.opponent_teams[0].name);
-        setOpponentTeamId(data.opponent_teams[0].team_id);
-        setOpponentPlayers(data.opponent_teams[0].players);
+        const matchOpp = data.match_info?.opponent_team_id
+          ? data.opponent_teams.find((t) => t.team_id === data.match_info.opponent_team_id)
+          : data.opponent_teams[0];
+        const opp = matchOpp || data.opponent_teams[0];
+        setOpponentTeamId(opp.team_id);
+        setOpponentName(opp.name);
+        setOpponentPlayers(opp.players);
       }
       if (data.our_team?.players?.length) {
-        setOurPlayers(data.our_team.players.map((p) => ({ ...p, scheduled: false })));
+        setOurPlayers(data.our_team.players.map((p) => ({ ...p, scheduled: p.scheduled ?? false })));
+      }
+      if (data.match_info) {
+        setSetup((current) => ({
+          ...current,
+          week: String(data.match_info.week),
+          date: data.match_info.date || current.date,
+          location: data.match_info.location || current.location,
+        }));
       }
     }).catch(() => {});
-  }, []);
+  }, [setup.week]);
 
   function updateSetup(key, value) {
     setSetup((current) => ({ ...current, [key]: value }));

@@ -388,8 +388,9 @@ def handle_history(_body: dict[str, Any], repository: MatchRepository, query: di
     return {"result": build_history_response(repository, status=status, limit=limit), "error": None}
 
 
-def handle_rosters(_body: dict[str, Any], _repository: MatchRepository) -> dict[str, Any]:
-    from config_loader import get_rosters_data
+def handle_rosters(_body: dict[str, Any], _repository: MatchRepository, query: dict[str, str]) -> dict[str, Any]:
+    from config_loader import get_matches_data, get_rosters_data, get_schedule_csv
+    from datetime import datetime, timezone
 
     raw = get_rosters_data()
     teams = raw[0]["data"]["division"]["teams"]
@@ -418,7 +419,65 @@ def handle_rosters(_body: dict[str, Any], _repository: MatchRepository) -> dict[
                 "players": players,
             })
 
-    return {"result": {"our_team": our_team, "opponent_teams": opponent_teams}, "error": None}
+    # Resolve week: use query param or auto-detect from today's date
+    all_matches_data = get_matches_data()
+    team_item = next((item for item in all_matches_data if item.get("data", {}).get("team", {}).get("matches")), None)
+    all_matches = team_item["data"]["team"]["matches"] if team_item else []
+    playable = [m for m in all_matches if not m.get("isBye") and m.get("startTime")]
+
+    week_param = query.get("week")
+    if week_param:
+        week = int(week_param)
+    else:
+        now = datetime.now(timezone.utc)
+        closest = min(playable, key=lambda m: abs((datetime.fromisoformat(m["startTime"]) - now).total_seconds()), default=None)
+        week = closest["week"] if closest else None
+
+    match_info = None
+    if week is not None:
+        match = next((m for m in playable if m["week"] == week), None)
+        if match:
+            is_away = "anti vill" in match["away"]["name"].lower()
+            opp = match["home"] if is_away else match["away"]
+            start = datetime.fromisoformat(match["startTime"])
+            match_info = {
+                "week": week,
+                "date": start.strftime("%Y-%m-%d"),
+                "location": match.get("location", {}).get("name", ""),
+                "home_team": match["home"]["name"],
+                "away_team": match["away"]["name"],
+                "opponent_name": opp["name"],
+                "opponent_team_id": slugify(opp["name"]),
+            }
+
+        # Mark scheduled players from AVL-schedule.csv
+        if our_team:
+            csv_rows = get_schedule_csv()
+            # Build first-name → display-name map; prefix-match handles
+            # shortened CSV names (e.g. "Kim" → "Kim-Khanh Van")
+            first_to_display = {p["name"].split()[0]: p["name"] for p in our_team["players"]}
+
+            def resolve_csv_name(cell: str) -> str | None:
+                if cell in first_to_display:
+                    return first_to_display[cell]
+                cell_lower = cell.lower()
+                for first, display in first_to_display.items():
+                    if first.lower().startswith(cell_lower) or cell_lower.startswith(first.lower()):
+                        return display
+                return None
+
+            scheduled_names: set[str] = set()
+            week_rows = [r for r in csv_rows if r.get("Week") == str(week)]
+            for row in week_rows[:5]:
+                cell = str(row.get("8 ball", "")).strip()
+                if cell and cell.lower() not in ("", "nan"):
+                    resolved = resolve_csv_name(cell)
+                    if resolved:
+                        scheduled_names.add(resolved)
+            for player in our_team["players"]:
+                player["scheduled"] = player["name"] in scheduled_names
+
+    return {"result": {"our_team": our_team, "opponent_teams": opponent_teams, "match_info": match_info}, "error": None}
 
 
 def handle_eligible(body: dict[str, Any], _repository: MatchRepository) -> dict[str, Any]:
@@ -456,7 +515,7 @@ def lambda_handler(event, context):  # noqa: ARG001
         elif method == "GET" and path == "/history":
             result = handle_history(body, repository, query)
         elif method == "GET" and path == "/rosters":
-            result = handle_rosters(body, repository)
+            result = handle_rosters(body, repository, query)
         elif method == "POST" and path == "/eligible":
             result = handle_eligible(body, repository)
         else:
