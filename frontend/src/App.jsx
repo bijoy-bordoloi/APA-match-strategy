@@ -2699,7 +2699,7 @@ function ScheduleView({ scheduleData, currentWeek, onStartMatch }) {
               className="primary-btn"
               onClick={() => onStartMatch(featuredWeek)}
             >
-              Start Match
+              Setup
             </button>
           </div>
         </div>
