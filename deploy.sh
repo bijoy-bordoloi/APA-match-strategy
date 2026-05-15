@@ -14,6 +14,7 @@ LAMBDA_FUNCTION="APA-match-strategy"
 AMPLIFY_APP_ID="d1r5j1w7p4gz6w"
 AMPLIFY_BRANCH="main"
 CONFIG_S3_BUCKET="apa-match-strategy-configs-bijoy"
+API_GW_ID="cyh1au8vb9"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
 TARGET="${1:-all}"
@@ -43,7 +44,45 @@ deploy_lambda() {
     --function-name "$LAMBDA_FUNCTION" \
     --region "$REGION"
 
-  echo "    Lambda live: https://cyh1au8vb9.execute-api.$REGION.amazonaws.com"
+  _ensure_api_routes
+  echo "    Lambda live: https://$API_GW_ID.execute-api.$REGION.amazonaws.com"
+}
+
+# Ensure all required API Gateway routes exist; create any that are missing.
+_ensure_api_routes() {
+  INTEGRATION_ID=$(aws apigatewayv2 get-integrations \
+    --api-id "$API_GW_ID" --region "$REGION" \
+    --query 'Items[0].IntegrationId' --output text)
+
+  EXISTING=$(aws apigatewayv2 get-routes \
+    --api-id "$API_GW_ID" --region "$REGION" \
+    --query 'Items[*].RouteKey' --output text)
+
+  _ensure_route() {
+    local ROUTE_KEY="$1"
+    if echo "$EXISTING" | grep -qF "$ROUTE_KEY"; then
+      return
+    fi
+    aws apigatewayv2 create-route \
+      --api-id "$API_GW_ID" --region "$REGION" \
+      --route-key "$ROUTE_KEY" \
+      --target "integrations/$INTEGRATION_ID" \
+      --output text --query 'RouteKey' | xargs -I{} echo "    + Route registered: {}"
+  }
+
+  # All routes the Lambda handles — add new routes here as they are implemented
+  _ensure_route "POST /match"
+  _ensure_route "DELETE /match"
+  _ensure_route "POST /suggest"
+  _ensure_route "POST /chat"
+  _ensure_route "POST /result"
+  _ensure_route "POST /submit"
+  _ensure_route "GET /history"
+  _ensure_route "GET /rosters"
+  _ensure_route "GET /players"
+  _ensure_route "POST /players"
+  _ensure_route "POST /players/search"
+  _ensure_route "GET /players/profile"
 }
 
 # ── Frontend ─────────────────────────────────────────────────────────────────
@@ -85,8 +124,10 @@ deploy_frontend() {
 # ── S3 configs ───────────────────────────────────────────────────────────────
 sync_s3() {
   echo "==> Syncing config files to S3..."
+  # No --delete: roster/schedule JSON files live in S3 as source of truth and
+  # are not kept in the local configurations/ directory.
   aws s3 sync "$DIR/configurations/" "s3://$CONFIG_S3_BUCKET/configs/" \
-    --region "$REGION" --delete
+    --region "$REGION"
 
   echo "==> Flushing Lambda config cache..."
   aws lambda update-function-configuration \
