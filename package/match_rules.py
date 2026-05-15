@@ -173,6 +173,8 @@ def eligible_players(
     sl_used = state.our_sl_used if side == "our" else state.their_sl_used
     room = MAX_TEAM_SL - sl_used
 
+    is_last_turn = state.turn_number >= MAX_TURNS
+
     eligible: dict[str, int] = {}
     for name, skill_level in roster.items():
         appearances = counts.get(name, 0)
@@ -181,6 +183,12 @@ def eligible_players(
         if appearances >= MAX_PLAYER_APPEARANCES:
             continue
         if appearances == 1 and dp_used:
+            continue
+        # Replay Rule: a second appearance is only permitted on the final turn.
+        # It is a forfeit-prevention measure, never a tactical choice.
+        # The opponent picks the replay player from all previously-played players.
+        # Not available in playoff mode (enforced in validate_turn).
+        if appearances == 1 and not is_last_turn:
             continue
         if enforce_budget and int(skill_level) > room:
             continue
@@ -218,6 +226,7 @@ def validate_turn(
         state.our_dp_used,
         requested_dp=is_our_dp,
         label="our",
+        turn_number=state.turn_number,
     )
     normalized_their_dp = _validate_player_reuse(
         their_player_name,
@@ -225,6 +234,7 @@ def validate_turn(
         state.their_dp_used,
         requested_dp=is_their_dp,
         label="their",
+        turn_number=state.turn_number,
     )
 
     if state.our_sl_used + int(our_sl) > MAX_TEAM_SL:
@@ -251,16 +261,31 @@ def _validate_player_reuse(
     *,
     requested_dp: bool | None,
     label: str,
+    turn_number: int = MAX_TURNS,
+    mode: str = "regular",
 ) -> bool:
     appearances = counts.get(name, 0)
     if appearances >= MAX_PLAYER_APPEARANCES:
         raise RuleViolation(f"{name} cannot play a third time for {label} team.")
     if appearances == 0:
         return False
+    # Replay Rule is not available in playoff mode
+    if mode == "playoff":
+        raise RuleViolation(
+            f"The Replay Rule is not allowed in playoff matches. "
+            f"{name} has already played for {label} team."
+        )
+    if turn_number < MAX_TURNS:
+        raise RuleViolation(
+            f"The Replay Rule may only be used in the final match (match {MAX_TURNS}). "
+            f"{name} has already played for {label} team."
+        )
     if dp_used:
-        raise RuleViolation(f"{label.title()} double play has already been used.")
+        raise RuleViolation(f"{label.title()} replay has already been used this match.")
     if requested_dp is False:
-        raise RuleViolation(f"{name} is a second appearance and must be marked as a double play.")
+        raise RuleViolation(
+            f"{name} is a replay (second appearance) — mark is_dp to confirm."
+        )
     return True
 
 

@@ -1,0 +1,148 @@
+APA 8-Ball League Rules Reference
+===================================
+Source: APA Rules Booklet (2026), Greater Seattle APA Local Bylaws (2026)
+Scope: APA Handicapped 8-Ball Team format only.
+
+NOTE: This file is a reference for future LLM injection. Not yet wired into the system.
+
+
+== 8-BALL GAME RULES (SUMMARY) ==
+
+Object: Pocket all balls in your group (solids 1–7 or stripes 9–15), then legally pocket the 8-ball in a marked (declared) pocket.
+
+Group assignment: Groups are assigned when the first ball is legally pocketed after the break. If the break pockets balls from both groups, the table remains open.
+
+Break:
+- At least 4 object balls must reach a rail, OR 1 object ball must be pocketed.
+- 8-ball pocketed on break = WIN (unless scratch = LOSS).
+- Breaking soft or safe is a sportsmanship violation.
+
+Fouls (penalty = ball-in-hand for opponent):
+- Cue ball scratches or leaves the table
+- Failing to contact your own object ball first
+- No rail or pocket contacted after cue ball hits object ball
+- Double-hit, cue ball moved outside ball-in-hand
+- Touching a ball accidentally during play
+
+Win conditions:
+- Pocket all balls in your group, then legally pocket the 8-ball in the marked pocket.
+- Opponent pockets 8-ball out of turn, in wrong pocket, or before clearing their group.
+- Opponent fouls while shooting the 8-ball.
+
+Marking the pocket: A coaster or marker must be placed next to the intended pocket before shooting the 8-ball.
+
+Stalemate: If neither player can or wants to use ball-in-hand, rerack and the same player breaks again.
+
+Innings & Defensive Shots: Every visit to the table counts as an inning. Safety shots (defensive shots) are marked on the scoresheet. High innings protect a player's Skill Level from increasing.
+
+Coaching: A time-out may be called once per game. The coach must stop when the one-minute timer in the Scorekeeping App expires. Players cannot receive advice outside of an official time-out.
+
+Cell phones: May NOT be used by a player for communication while it is their turn at the table.
+
+
+== APA HANDICAPPED 8-BALL TEAM MATCH FORMAT ==
+
+Team composition: 5 players per team field 5 individual matches per match night. Each player plays once. No player may play a third time (hard rule violation — forfeit).
+
+Team Skill Level Limit (23-Rule / SL-23):
+- Combined Skill Levels of all 5 players fielded MUST NOT exceed 23.
+- Budget formula: sl_used_so_far + next_player_sl + (remaining_turns × 2) ≤ 23
+- The "× 2" reserves minimum SL-2 budget for every remaining turn.
+- Violating SL-23 results in forfeiture of that match and all subsequent matches.
+
+Turn order: Teams alternate who declares their player first ("throwing" vs. "countering"):
+- Throwing first: you name your player before seeing the opponent's choice.
+- Countering: opponent names their player first, giving you matchup information.
+
+
+== HANDICAPPED SCORING (8-BALL TEAM) ==
+
+Each individual match produces points based on games won:
+
+  Our pts – Their pts
+  3 – 0   (sweep)
+  2 – 0
+  2 – 1
+  1 – 2
+  0 – 2
+  0 – 3   (shutout)
+
+Maximum 3 points per individual match. Higher-SL players must win more games to earn 3 points (they need to pocket more racks to reach their score threshold).
+
+Regular season: Team wins the night by accumulating more total points across all 5 matches.
+- Maximum 10 points per team per night.
+- Target 8+ points to win the night.
+- A team wins early if they clinch 8+ points; remaining matches may not be played.
+
+Playoff / Tri-Annual / World Qualifier mode: First team to win 3 individual matches wins the night. Points are irrelevant. Deploy best players early; accept point losses if it secures individual match wins.
+
+
+== SKILL LEVELS (8-BALL) ==
+
+Range: SL 1–9 (higher = more skilled). APA assigns SL based on historical win rate and innings.
+
+SL changes: Triggered by playing too efficiently (high win rate + low innings). Playing defensively (safeties) increases innings without winning faster, protecting SL.
+
+Strategic archetypes:
+- SL 2–3 "Monsters": Minimal SL budget cost; capable of upsetting higher-SL opponents.
+- SL 6–9 "Anchors/Killers": High win probability; deployed in must-win turns or playoffs.
+- "Giant Killers": Mid-SL players with historically high win rates against higher-SL opponents.
+- "On the Hill": Player approaching an SL increase; manage their innings carefully.
+- "Sandbagger": Opponent playing significantly below expected ability — risk to watch for.
+
+Vegas eligibility: Players must appear in ≥ 4 match nights per session to be eligible for Playoffs, Tri-Annual, and World Qualifier. End-of-session rotation to build eligibility is a real captain tactic.
+
+SL Preservation ("Vegas Preservation"): Captains deliberately play conservatively (safeties, slow play) to keep innings high and win rates below the SL-increase threshold, preserving low-SL players for future seasons.
+
+
+== REPLAY RULE (Greater Seattle APA — Forfeit Prevention Only) ==
+
+Source: Greater Seattle APA Local Bylaws 2026, Section 2 — "Preventing Forfeits - Replay Rule"
+
+One player ("Replay Player") from a team ("Replay Team") may play twice on the same night ONLY as a last resort to prevent a forfeit. All of the following conditions must be met:
+
+1. TRIGGER: The Replay Team does not have enough players present, OR cannot play the players it does have without violating the 23-Rule. A team that exceeds 23 with all available players cannot use the Replay Rule — they must forfeit.
+
+2. NOT GAMING THE RULE: The need for a replay must NOT be due to a player being deliberately sent home or made unavailable. Abuse must be reported to the League Office.
+
+3. NOTIFICATION: The Replay Team MUST notify the opposing team of the need (or potential need) to invoke the Replay Rule BEFORE the start of the 4th individual match.
+
+4. OPPONENT CHOOSES THE REPLAY PLAYER: The opposing team picks which player from the Replay Team will be the Replay Player. The opposing team may choose ANY player who has already played that night (all previously-played players must be available as choices). Exception: the chosen player must keep the Replay Team within the 23-Rule.
+
+5. LAST MATCH ONLY: The replay match MUST be played as the last match of the night (match 5). If a replay is used in any earlier match, that match AND all subsequent matches are forfeited by BOTH teams.
+
+6. NEW PLAYER CANCELS REPLAY: If another eligible player from the Replay Team shows up before the replay match begins, the replay is cancelled and the new player must play instead.
+
+7. ONCE USED, SUBSEQUENT MATCHES FORFEIT: After a replay match is played, all remaining matches must be forfeited even if another player later arrives.
+
+8. BOTH TEAMS MAY REPLAY: Both teams may invoke the Replay Rule on the same night. In this case, each team puts up their own player. The team scheduled to put up a player in match 5 designates their Replay Player first.
+
+9. NOT AVAILABLE IN: Playoffs, Tri-Annual Tournaments, World Qualifier, or the LAST WEEK of regular season play.
+
+STRATEGIC IMPLICATIONS FOR CAPTAINS:
+- The Replay Rule is PURELY a forfeit-prevention mechanism — NEVER a tactical choice.
+- You do NOT choose who replays; the OPPONENT picks your Replay Player for you.
+- Never suggest invoking the Replay Rule for strategic advantage.
+- When the Replay Rule is in effect, eligible players for match 5 are limited to those who have already played. The opponent will try to select the Replay Player who gives them the best matchup.
+
+
+== DOUBLE PLAY (DP) — TERMINOLOGY NOTE ==
+
+In this application, "Double Play" (DP) and "Replay Rule" refer to the same concept: a player appearing twice in one match night. Key constraints:
+- One DP/replay per team per match night.
+- Only on the final match (match 5) of the night.
+- Not available in playoff mode.
+- The player appearing twice counts against SL budget in both turns.
+
+
+== GREATER SEATTLE APA — ADDITIONAL 8-BALL TEAM RULES ==
+
+Splitting matches: If the 4th match has not started by 2 hours after official league start time and a table is available, teams must start a 2nd table. The 5th match plays on the first table that opens. Teams may not obstruct use of the 2nd table.
+
+Scorekeeping: Must be done via the APA Scorekeeper App or official printed scoresheets. Scoresheets due by noon the day after league night.
+
+Bonus points: Earned for accurate, legible, complete scoresheets and on-time payment. Up to 3 bonus points per week for 8-Ball teams.
+
+Table size: Host team declares table size (7', 8', or 9') for the entire session in Week 1.
+
+Vegas eligibility (8-Ball team): Players must play ≥ 4 matches during the qualifying session AND all subsequent sessions to retain eligibility for Tri-Annual and World Qualifier.

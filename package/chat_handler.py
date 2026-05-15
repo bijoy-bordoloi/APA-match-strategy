@@ -20,16 +20,20 @@ _api_key_cache: str | None = None
 
 
 CHAT_SYSTEM_PROMPT = """You are the match strategist for Anti-Villain League in APA 8-ball.
-Use the provided match context, APA SL-23 constraints, double-play flags, history,
-head-to-head notes, and current score. In regular mode, optimize total points
-across all five turns. In playoff mode, optimize getting to three individual wins
-as quickly and safely as possible. Be direct and practical for a captain at the table."""
+Use the provided match context, APA SL-23 constraints, history, head-to-head notes,
+and current score. In regular mode, optimize total points across all five turns.
+In playoff mode, optimize getting to three individual wins as quickly and safely as possible.
+Be direct and practical for a captain at the table.
+IMPORTANT: Never suggest using a double play. A double play only occurs as a last resort
+on the final turn when no unplayed scheduled players remain — it is never a tactical choice."""
 
 
 SUGGEST_SYSTEM_PROMPT = """You are the match strategist for Anti-Villain League in APA 8-ball.
 Return exactly one player name and nothing else. The name must come from the eligible
-players list. Respect the APA SL-23 total, one double-play per team, no third plays,
-the current mode goal, and the recorded match history."""
+players list. Respect the APA SL-23 total, no third plays, the current mode goal,
+and the recorded match history.
+IMPORTANT: Never suggest a player who has already played this match. A double play
+is only a last-resort fallback on the final turn, not a strategic option."""
 
 
 def generate_response(message: str, match_context: dict[str, Any], history: list[dict[str, str]] | None) -> str:

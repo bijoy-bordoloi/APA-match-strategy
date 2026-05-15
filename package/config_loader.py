@@ -31,12 +31,14 @@ def _parse_schedule_csv(lines: list[str]) -> list[dict]:
     return rows
 
 
-def _load_config_from_local(filename: str) -> dict:
+def _load_config_from_local(filename: str):
     """Load config from local file (current approach)."""
     path = f"configurations/{filename}"
     with open(path, 'r') as f:
         if filename.endswith('.csv'):
             return _parse_schedule_csv(f.readlines())
+        elif filename.endswith('.txt'):
+            return f.read()
         else:
             return json.load(f)
 
@@ -50,6 +52,8 @@ def _load_config_from_s3(bucket: str, key: str):
 
     if key.endswith('.csv'):
         return _parse_schedule_csv(content.splitlines(keepends=True))
+    elif key.endswith('.txt'):
+        return content
     else:
         return json.loads(content)
 
@@ -86,3 +90,12 @@ def get_rosters_data() -> dict:
 def get_schedule_csv() -> list:
     """Get player schedule CSV."""
     return load_config("AVL-schedule.csv")
+
+
+def get_rules_reference() -> str:
+    """Get the APA 8-ball rules reference text."""
+    try:
+        return load_config("rules-reference.txt")
+    except Exception as exc:
+        logger.warning("Rules reference unavailable: %s", exc)
+        return ""

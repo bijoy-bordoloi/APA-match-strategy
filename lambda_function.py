@@ -134,13 +134,14 @@ def handle_suggest(body: dict[str, Any], repository: MatchRepository) -> dict[st
     eligible_ours = body.get("eligible_our_players") or body.get("eligible_ours")
     remaining_theirs = body.get("remaining_their_players") or body.get("rem_theirs")
 
-    if not eligible_ours:
-        eligible_ours = eligible_players(
-            match_context.get("our_roster", {}),
-            match_context.get("turns", []),
-            side="our",
-            fresh_only=True,
-        )
+    # Always compute eligible_ours server-side with fresh_only=True so the LLM
+    # never sees a DP candidate as a suggestion option.
+    eligible_ours = eligible_players(
+        match_context.get("our_roster", {}),
+        match_context.get("turns", []),
+        side="our",
+        fresh_only=True,
+    )
     if not remaining_theirs:
         remaining_theirs = eligible_players(
             match_context.get("their_roster", {}),
@@ -186,6 +187,15 @@ def handle_suggest(body: dict[str, Any], repository: MatchRepository) -> dict[st
         except Exception as exc:
             logger.info("APR enrichment skipped for suggest: %s", exc)
 
+        enriched_context["eligibility_rules"] = (
+            "APA 8-Ball eligibility (hard constraints): "
+            "(1) SL-23 rule: sl_used_so_far + next_player_sl + (remaining_turns × 2) must be ≤ 23. "
+            "(2) No player may play a third time — hard forfeit. "
+            "(3) Replay Rule (double play): forfeit-prevention ONLY, never a tactical choice. "
+            "Only allowed on the final match (match 5) in regular season when no fresh players remain. "
+            "Not available in playoffs. The OPPONENT picks the replay player, not the captain. "
+            "Never suggest a player who has already played unless eligible_our_players explicitly includes them."
+        )
         suggestion = generate_suggestion(
             action=action,
             eligible_our_players={name: int(sl) for name, sl in eligible_ours.items()},
@@ -207,6 +217,13 @@ def handle_chat(body: dict[str, Any], repository: MatchRepository) -> dict[str, 
     match_context = _context_from_body_or_match(body, repository)
     match_context = _enrich_with_h2h(match_context, repository)
     match_context = _enrich_with_history(match_context, repository)
+    try:
+        from config_loader import get_rules_reference
+        rules = get_rules_reference()
+        if rules:
+            match_context["apa_rules"] = rules
+    except Exception as exc:
+        logger.info("Rules reference skipped for chat: %s", exc)
     reply = generate_response(message, match_context, body.get("history", []))
     return {"reply": reply, "result": reply, "error": None}
 
