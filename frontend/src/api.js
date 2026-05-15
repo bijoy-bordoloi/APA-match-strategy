@@ -71,7 +71,8 @@ export async function fetchPlayerProfile(name, playerSl, opponentPlayerId) {
     return { result: null, offline: true, stale: true };
   }
 
-  const params = new URLSearchParams({ name, player_sl: playerSl });
+  const params = new URLSearchParams({ name });
+  if (playerSl != null) params.set('player_sl', playerSl);
   if (opponentPlayerId) params.set('opponent_player_id', opponentPlayerId);
 
   try {
@@ -87,6 +88,14 @@ export async function fetchPlayerProfile(name, playerSl, opponentPlayerId) {
     if (cached) return { result: cached, offline: false, stale: isStale, fetchError: err.message };
     throw err;
   }
+}
+
+export async function searchPlayers(query) {
+  const json = await request('/players/search', {
+    method: 'POST',
+    body: JSON.stringify({ query }),
+  });
+  return json.result;
 }
 
 export function enqueueWrite(payload, path = '/result') {

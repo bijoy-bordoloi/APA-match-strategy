@@ -19,6 +19,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  Search,
   Send,
   Trash2,
   TrendingDown,
@@ -34,6 +35,7 @@ import {
   enqueueWrite,
   fetchPlayerProfile,
   flushQueue,
+  searchPlayers,
   getHistory,
   getRosters,
   getSuggestion,
@@ -90,6 +92,8 @@ export default function App() {
   const [queueCount, setQueueCount] = useState(loadQueue().length);
   const [online, setOnline] = useState(navigator.onLine);
   const [profileSheet, setProfileSheet] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [prevScreen, setPrevScreen] = useState('history');
   const matchStarted = matchStatus === 'active' || matchStatus === 'editing';
 
   // --- Auth: boot check (synchronous localStorage read, no network) ---
@@ -539,6 +543,12 @@ export default function App() {
     }
   }
 
+  function goToPlayer(name, sl) {
+    setPrevScreen(screen);
+    setSelectedPlayer({ name, sl: sl || null });
+    setScreen('player');
+  }
+
   function reEditMatch(match) {
     const savedOurRoster = match.our_roster || {};
     const savedTheirRoster = match.their_roster || {};
@@ -638,6 +648,10 @@ export default function App() {
           <History size={18} />
           History
         </button>
+        <button className={screen === 'player' ? 'active' : ''} onClick={() => { setPrevScreen(screen); setSelectedPlayer(null); setScreen('player'); }}>
+          <Users size={18} />
+          Players
+        </button>
       </nav>
 
       {notice && <div className="notice">{notice}</div>}
@@ -720,6 +734,15 @@ export default function App() {
           onReEdit={reEditMatch}
           onStartNew={startNewMatch}
           onDelete={deleteFromHistory}
+          onPlayerClick={goToPlayer}
+        />
+      )}
+
+      {screen === 'player' && (
+        <PlayerView
+          initialPlayer={selectedPlayer}
+          historyData={historyData}
+          onBack={() => setScreen(prevScreen || 'history')}
         />
       )}
     </div>
@@ -1690,7 +1713,231 @@ function buildPlayerStats(matches, myTeams) {
   return Object.values(stats).sort((a, b) => b.wins - a.wins || a.player_name.localeCompare(b.player_name));
 }
 
-function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete }) {
+function computeLocalPlayerStats(name, historyData) {
+  if (!name || !historyData?.matches) return null;
+  let appearances = 0, wins = 0, losses = 0;
+  const recentMatches = [];
+  for (const match of historyData.matches) {
+    const sc = match.source_context || {};
+    const turns = Array.isArray(match.turns) && match.turns.length > 0 ? match.turns : (sc.turns || []);
+    const summary = match.summary || sc.summary || {};
+    for (const turn of turns) {
+      const homePl = turn.home_player_name ?? turn.our_player_name;
+      const awayPl = turn.away_player_name ?? turn.their_player_name;
+      const homeScore = Number(turn.home_score ?? turn.our_score ?? 0);
+      const awayScore = Number(turn.away_score ?? turn.their_score ?? 0);
+      let playerScore = null;
+      if (homePl === name) playerScore = homeScore;
+      else if (awayPl === name) playerScore = awayScore;
+      if (playerScore === null) continue;
+      appearances++;
+      if (playerScore >= 2) wins++; else losses++;
+    }
+    const appearsInMatch = turns.some((t) =>
+      (t.home_player_name ?? t.our_player_name) === name ||
+      (t.away_player_name ?? t.their_player_name) === name
+    );
+    if (appearsInMatch) {
+      recentMatches.push({
+        date: match.date,
+        home: match.home_team_name || match.our_team_name || 'Home',
+        away: match.away_team_name || match.opponent_team_name || 'Away',
+        result: summary.result,
+        our_score: summary.our_score,
+        their_score: summary.their_score,
+      });
+    }
+  }
+  return { appearances, wins, losses, recentMatches: recentMatches.slice(0, 8) };
+}
+
+function PlayerView({ initialPlayer, historyData, onBack }) {
+  const [query, setQuery] = useState(initialPlayer?.name || '');
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [activePlayer, setActivePlayer] = useState(initialPlayer || null);
+
+  const localStats = useMemo(
+    () => computeLocalPlayerStats(activePlayer?.name, historyData),
+    [activePlayer?.name, historyData]
+  );
+
+  useEffect(() => {
+    if (!activePlayer) return;
+    setProfileLoading(true);
+    setProfileError('');
+    setProfile(null);
+    fetchPlayerProfile(activePlayer.name, activePlayer.sl || null)
+      .then(({ result }) => setProfile(result))
+      .catch((err) => setProfileError(err.message || 'Failed to load profile'))
+      .finally(() => setProfileLoading(false));
+  }, [activePlayer?.name]);
+
+  function handleSearch(e) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setActivePlayer({ name: query.trim(), sl: null });
+  }
+
+  return (
+    <main className="player-view tool-surface">
+      <div className="player-view-header">
+        <button className="ghost-button player-back-btn" onClick={onBack}>
+          <ChevronLeft size={18} /> Back
+        </button>
+        <h2 className="player-view-title">Player Profile</h2>
+      </div>
+
+      <form className="player-search-bar" onSubmit={handleSearch}>
+        <Search size={16} className="player-search-icon" />
+        <input
+          className="player-search-input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name…"
+        />
+        {query && (
+          <button type="button" className="filter-clear" onClick={() => { setQuery(''); setActivePlayer(null); setProfile(null); }}>
+            <X size={14} />
+          </button>
+        )}
+        <button type="submit" className="player-search-btn">Go</button>
+      </form>
+
+      {profileError && <p className="notice">{profileError}</p>}
+      {profileLoading && <ProfileSkeleton />}
+
+      {activePlayer && !profileLoading && profile && (
+        <div className="player-profile-full">
+          <div className="profile-zone-a">
+            <div className="profile-identity">
+              {profile.form && <FormBadge badge={profile.form.badge} reliable={profile.form.reliable} />}
+              <span className="profile-name">{activePlayer.name}</span>
+              {activePlayer.sl ? <span className="pl-sl">SL {activePlayer.sl}</span> : null}
+            </div>
+            {profile.narrative && <p className="profile-narrative">{profile.narrative}</p>}
+          </div>
+
+          <div className="profile-divider" />
+          <div className="profile-zone-b">
+            <div className="profile-metric">
+              <strong>{profile.player.eb_win_pct != null ? `${Math.round(profile.player.eb_win_pct)}%` : '—'}</strong>
+              <span>Win %</span>
+            </div>
+            <div className="profile-metric">
+              <strong>{profile.player.eb_matches_played ?? '—'}</strong>
+              <span>Matches</span>
+            </div>
+            <div className="profile-metric">
+              <strong>{profile.player.avg_opponent_sl != null ? Number(profile.player.avg_opponent_sl).toFixed(1) : '—'}</strong>
+              <span>Avg Opp SL</span>
+            </div>
+            <div className="profile-metric">
+              <strong>{profile.player.eb_rackless ?? '—'}</strong>
+              <span>Rackless</span>
+            </div>
+            <div className="profile-metric">
+              <strong>{profile.player.eb_break_and_runs ?? '—'}</strong>
+              <span>B&amp;Rs</span>
+            </div>
+            <div className="profile-metric">
+              <strong>{profile.player.eb_defensive_shot_avg != null ? Number(profile.player.eb_defensive_shot_avg).toFixed(2) : '—'}</strong>
+              <span>DSA</span>
+            </div>
+          </div>
+
+          {profile.player.apr && (
+            <>
+              <div className="profile-divider" />
+              <div className="profile-zone-c">
+                <span className="profile-section-label">APR Score</span>
+                <div className="profile-zone-b" style={{ marginTop: 8 }}>
+                  <div className="profile-metric">
+                    <strong>{profile.player.apr.score}</strong>
+                    <span>APR ({profile.player.apr.band})</span>
+                  </div>
+                  <div className="profile-metric">
+                    <strong>{profile.player.apr.mps}</strong>
+                    <span>MPS</span>
+                  </div>
+                  <div className="profile-metric">
+                    <strong>{profile.player.apr.ppms}</strong>
+                    <span>PPMS</span>
+                  </div>
+                  <div className="profile-metric">
+                    <strong>{profile.player.apr.pas}</strong>
+                    <span>PAS</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {profile.recent_sessions?.length > 0 && (
+            <>
+              <div className="profile-divider" />
+              <div className="profile-zone-d">
+                <span className="profile-section-label">APA Sessions</span>
+                {profile.recent_sessions.map((s, i) => (
+                  <div key={i} className="profile-session-row">
+                    <span className="session-name">{s.session_name || '—'}</span>
+                    <span className="session-record">{s.matches_won}W–{s.matches_played - s.matches_won}L</span>
+                    {s.team_name && <span className="session-team">{s.team_name}</span>}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {localStats && localStats.appearances > 0 && (
+            <>
+              <div className="profile-divider" />
+              <div className="profile-zone-d">
+                <span className="profile-section-label">AVL Record (this app)</span>
+                <div className="profile-zone-b" style={{ marginTop: 8 }}>
+                  <div className="profile-metric">
+                    <strong>{localStats.appearances}</strong>
+                    <span>Turns</span>
+                  </div>
+                  <div className="profile-metric">
+                    <strong>{localStats.wins}</strong>
+                    <span>Wins</span>
+                  </div>
+                  <div className="profile-metric">
+                    <strong>{localStats.losses}</strong>
+                    <span>Losses</span>
+                  </div>
+                  <div className="profile-metric">
+                    <strong>{localStats.appearances > 0 ? `${Math.round(localStats.wins / localStats.appearances * 100)}%` : '—'}</strong>
+                    <span>Win %</span>
+                  </div>
+                </div>
+                {localStats.recentMatches.length > 0 && (
+                  <div className="player-recent-matches">
+                    {localStats.recentMatches.map((m, i) => (
+                      <div key={i} className="player-recent-row">
+                        <span className="player-recent-date">{formatMatchDate(m.date)}</span>
+                        <span className="player-recent-matchup">{m.home} vs {m.away}</span>
+                        <span className="player-recent-score">{m.our_score ?? '?'}–{m.their_score ?? '?'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {activePlayer && !profileLoading && !profile && !profileError && (
+        <p className="empty-state">No Neon data found for "{activePlayer.name}".</p>
+      )}
+    </main>
+  );
+}
+
+function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete, onPlayerClick }) {
   const [divisionFilter, setDivisionFilter] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
   const [playerFilter, setPlayerFilter] = useState('');
@@ -1809,6 +2056,7 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
               onToggle={() => setExpandedHistory(expandedHistory === match.match_id ? null : match.match_id)}
               onEdit={() => onReEdit(match)}
               onDelete={() => onDelete(match.match_id)}
+              onPlayerClick={onPlayerClick}
             />
           ))}
           {!filteredMatches.length && busy !== 'history' && (
@@ -1855,7 +2103,7 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
   );
 }
 
-function HistoryCard({ match, myTeams, expanded, onToggle, onEdit, onDelete }) {
+function HistoryCard({ match, myTeams, expanded, onToggle, onEdit, onDelete, onPlayerClick }) {
   // TURN# DynamoDB writes fail when the submit payload violates a backend rule
   // (e.g. opponent SL > 23). In those cases the actual data lives in
   // source_context, which is always stored regardless of turn validation.
@@ -1925,8 +2173,12 @@ function HistoryCard({ match, myTeams, expanded, onToggle, onEdit, onDelete }) {
             const awayPl = turn.away_player_name ?? turn.their_player_name;
             const homeScore = Number(turn.home_score ?? turn.our_score ?? 0);
             const awayScore = Number(turn.away_score ?? turn.their_score ?? 0);
+            const homeSl = Number(turn.home_sl_snapshot ?? turn.our_sl_snapshot ?? 0);
+            const awaySl = Number(turn.away_sl_snapshot ?? turn.their_sl_snapshot ?? 0);
             const ourPlayer = flipped ? awayPl : homePl;
             const theirPlayer = flipped ? homePl : awayPl;
+            const ourSl = flipped ? awaySl : homeSl;
+            const theirSl = flipped ? homeSl : awaySl;
             const ourTurnScore = flipped ? awayScore : homeScore;
             const theirTurnScore = flipped ? homeScore : awayScore;
             const turnWon = ourTurnScore >= 2;
@@ -1934,7 +2186,13 @@ function HistoryCard({ match, myTeams, expanded, onToggle, onEdit, onDelete }) {
               <div key={turn.turn_num} className="turn-row">
                 <span className={`t-badge ${turnWon ? 'win' : 'loss'}`}>T{turn.turn_num}</span>
                 <span className="turn-players">
-                  {ourPlayer} vs {theirPlayer}
+                  {onPlayerClick && ourPlayer ? (
+                    <button className="turn-player-link" onClick={() => onPlayerClick(ourPlayer, ourSl)}>{ourPlayer}</button>
+                  ) : ourPlayer}
+                  {' vs '}
+                  {onPlayerClick && theirPlayer ? (
+                    <button className="turn-player-link" onClick={() => onPlayerClick(theirPlayer, theirSl)}>{theirPlayer}</button>
+                  ) : theirPlayer}
                 </span>
                 <span className={`turn-score${turnWon ? ' win' : ''}`}>
                   {ourTurnScore}-{theirTurnScore}

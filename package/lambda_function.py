@@ -504,14 +504,11 @@ def handle_players_profile(body: dict[str, Any], query: dict[str, str], reposito
 
     if not name and not member_id:
         raise ValueError("Provide 'name' or 'member_id'")
-    if player_sl is None:
-        raise ValueError("'player_sl' is required")
 
-    player_sl = int(player_sl)
+    player_sl_param = int(player_sl) if player_sl is not None else None
 
     # SL peer baseline constants from spec Section 3
     _PEER_BASELINE = {2: 0.38, 3: 0.42, 4: 0.47, 5: 0.52, 6: 0.57, 7: 0.63}
-    peer_baseline = _PEER_BASELINE.get(player_sl, 0.50)
 
     futures = {}
     with ThreadPoolExecutor(max_workers=3) as executor:
@@ -548,6 +545,9 @@ def handle_players_profile(body: dict[str, Any], query: dict[str, str], reposito
     player = results["player"]
     if player is None:
         raise NotFound(f"Player not found: {name or member_id}")
+
+    player_sl = player_sl_param if player_sl_param is not None else int(player.get("skill_level") or 5)
+    peer_baseline = _PEER_BASELINE.get(player_sl, 0.50)
 
     _player_obj, sessions, apr_row = results["sessions"]
 
