@@ -90,6 +90,11 @@ export async function fetchPlayerProfile(name, playerSl, opponentPlayerId) {
   }
 }
 
+export async function getDivision() {
+  const result = await request('/division', { method: 'GET' });
+  return result.result || result;
+}
+
 export async function searchPlayers(query) {
   const json = await request('/players/search', {
     method: 'POST',

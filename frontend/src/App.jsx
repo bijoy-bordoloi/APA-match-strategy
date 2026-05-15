@@ -35,6 +35,7 @@ import {
   enqueueWrite,
   fetchPlayerProfile,
   flushQueue,
+  getDivision,
   searchPlayers,
   getHistory,
   getRosters,
@@ -87,6 +88,7 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [historyData, setHistoryData] = useState({ matches: [], player_stats: [] });
   const [expandedHistory, setExpandedHistory] = useState(null);
+  const [scheduleData, setScheduleData] = useState(null);
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
   const [queueCount, setQueueCount] = useState(loadQueue().length);
@@ -543,6 +545,39 @@ export default function App() {
     }
   }
 
+  async function loadScheduleView() {
+    setScreen('schedule');
+    if (scheduleData) return;
+    try {
+      const data = await getDivision();
+      setScheduleData(data);
+    } catch {
+      // non-fatal — ScheduleView shows loading state until data arrives
+    }
+  }
+
+  function prefillFromSchedule(weekEntry, teams) {
+    const oppTeam = teams.find((t) => t.team_id === weekEntry.opponent_team_id);
+    setSetup((s) => ({
+      ...s,
+      week: String(weekEntry.week),
+      date: weekEntry.date,
+      location: weekEntry.location,
+    }));
+    if (oppTeam) {
+      setOpponentName(oppTeam.name);
+      setOpponentTeamId(oppTeam.team_id);
+      setOpponentPlayers(oppTeam.players);
+    }
+    setOurPlayers((prev) =>
+      prev.map((p) => ({
+        ...p,
+        scheduled: weekEntry.scheduled_players.includes(p.name),
+      })),
+    );
+    setScreen('setup');
+  }
+
   function goToPlayer(name, sl) {
     setPrevScreen(screen);
     setSelectedPlayer({ name, sl: sl || null });
@@ -652,6 +687,10 @@ export default function App() {
           <Users size={18} />
           Players
         </button>
+        <button className={screen === 'schedule' ? 'active' : ''} onClick={loadScheduleView}>
+          <CalendarDays size={18} />
+          Sched
+        </button>
       </nav>
 
       {notice && <div className="notice">{notice}</div>}
@@ -743,6 +782,14 @@ export default function App() {
           initialPlayer={selectedPlayer}
           historyData={historyData}
           onBack={() => setScreen(prevScreen || 'history')}
+        />
+      )}
+
+      {screen === 'schedule' && (
+        <ScheduleView
+          scheduleData={scheduleData}
+          currentWeek={scheduleData?.current_week ?? null}
+          onStartMatch={(weekEntry) => prefillFromSchedule(weekEntry, scheduleData?.teams ?? [])}
         />
       )}
     </div>
@@ -2564,6 +2611,136 @@ function SignInScreen({ deniedEmail }) {
         )}
         <div id="gis-button-target" />
       </div>
+    </div>
+  );
+}
+
+function ScheduleView({ scheduleData, currentWeek, onStartMatch }) {
+  if (!scheduleData) {
+    return (
+      <div className="schedule-loading">
+        <RefreshCw size={18} className="spin" />
+        Loading schedule…
+      </div>
+    );
+  }
+
+  const { schedule = [] } = scheduleData;
+
+  // Find the featured week: the current/next unplayed AVL match
+  const featuredWeek = schedule.find((w) => w.week === currentWeek && !w.is_bye) ?? null;
+  const otherWeeks = schedule.filter((w) => w !== featuredWeek);
+
+  function formatShortDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function outcomeLabel(result) {
+    if (!result) return null;
+    if (result.outcome === 'win') return 'W';
+    if (result.outcome === 'loss') return 'L';
+    return 'T';
+  }
+
+  function PlayerChips({ players }) {
+    if (!players?.length) return null;
+    return (
+      <div className="schedule-player-chips">
+        {players.map((name) => (
+          <span key={name} className="schedule-player-chip">
+            {name.split(' ')[0]}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  function HABadge({ isHome }) {
+    return (
+      <span className={`schedule-ha-badge${isHome ? ' home' : ''}`}>
+        {isHome ? 'H' : 'A'}
+      </span>
+    );
+  }
+
+  return (
+    <div className="schedule-view">
+      {featuredWeek && (
+        <div className="schedule-week-card">
+          <div className="schedule-week-card-header">
+            <p className="eyebrow">Week {featuredWeek.week} · Up Next</p>
+          </div>
+          <div className="schedule-week-card-body">
+            <div className="schedule-week-card-meta">
+              <HABadge isHome={featuredWeek.is_home} />
+              <strong>{featuredWeek.opponent}</strong>
+            </div>
+            <div className="schedule-row-meta">
+              <span className="schedule-row-date">{formatShortDate(featuredWeek.date)}</span>
+              {featuredWeek.location && (
+                <span className="schedule-row-date">· {featuredWeek.location}</span>
+              )}
+              {featuredWeek.is_playoff && (
+                <span className="schedule-playoff-badge">Playoff</span>
+              )}
+            </div>
+            <PlayerChips players={featuredWeek.scheduled_players} />
+          </div>
+          <div className="schedule-week-card-actions">
+            <button
+              className="primary-btn"
+              onClick={() => onStartMatch(featuredWeek)}
+            >
+              Start Match
+            </button>
+          </div>
+        </div>
+      )}
+
+      {otherWeeks.map((week) => {
+        const result = week.result;
+        const outcome = outcomeLabel(result);
+
+        return (
+          <div
+            key={week.week}
+            className={`schedule-row${week.is_bye ? ' bye' : ''}${week.is_playoff ? ' playoff' : ''}`}
+          >
+            <div className="schedule-week-num">W{week.week}</div>
+            <div className="schedule-row-main">
+              <div className="schedule-row-opponent">
+                {week.is_bye ? 'Bye' : week.opponent}
+              </div>
+              {!week.is_bye && (
+                <div className="schedule-row-meta">
+                  <HABadge isHome={week.is_home} />
+                  <span className="schedule-row-date">{formatShortDate(week.date)}</span>
+                  {week.is_playoff && (
+                    <span className="schedule-playoff-badge">Playoff</span>
+                  )}
+                </div>
+              )}
+              {!week.is_bye && week.scheduled_players?.length > 0 && (
+                <PlayerChips players={week.scheduled_players} />
+              )}
+            </div>
+            <div className="schedule-result">
+              {result && outcome ? (
+                <>
+                  <span className={`schedule-result-badge ${result.outcome}`}>
+                    {outcome}
+                  </span>
+                  <span className="schedule-result-score">
+                    {result.our_score}–{result.their_score}
+                  </span>
+                </>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

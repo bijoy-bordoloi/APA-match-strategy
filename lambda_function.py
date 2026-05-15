@@ -8,6 +8,7 @@ Routes implemented for the mobile React app:
   POST /submit          create/update a complete match result
   GET  /history         list past matches and player stats
   GET  /rosters         rosters, schedule, and match info from S3
+  GET  /division        full season schedule, all teams, and results
   GET|POST /players     look up a player's stats from Neon
   POST /players/search  full-text or leaderboard search
 """
@@ -512,6 +513,160 @@ def handle_rosters(_body: dict[str, Any], _repository: MatchRepository, query: d
     return {"result": {"our_team": our_team, "opponent_teams": opponent_teams, "match_info": match_info}, "error": None}
 
 
+def handle_division(_body: dict[str, Any], repository: MatchRepository, query: dict[str, str]) -> dict[str, Any]:
+    from config_loader import get_matches_data, get_rosters_data, get_schedule_csv
+    from datetime import datetime, timezone
+
+    # ── Build roster lookup ──────────────────────────────────────────────────
+    raw = get_rosters_data()
+    teams_raw = raw[0]["data"]["division"]["teams"]
+
+    our_team_players: list[dict[str, Any]] = []
+    teams_out: list[dict[str, Any]] = []
+
+    for team in teams_raw:
+        if team.get("isBye"):
+            continue
+        players = [
+            {"name": p["displayName"], "skill_level": p["skillLevel"]}
+            for p in team.get("roster", [])
+            if p["skillLevel"] > 0
+        ]
+        if "anti vill" in team["name"].lower():
+            our_team_players = players
+        else:
+            teams_out.append({
+                "team_id": slugify(team["name"]),
+                "name": team["name"],
+                "players": players,
+            })
+
+    # First-name prefix map for CSV resolution
+    first_to_display = {p["name"].split()[0]: p["name"] for p in our_team_players}
+
+    def resolve_csv_name(cell: str) -> str | None:
+        if cell in first_to_display:
+            return first_to_display[cell]
+        cell_lower = cell.lower()
+        for first, display in first_to_display.items():
+            if first.lower().startswith(cell_lower) or cell_lower.startswith(first.lower()):
+                return display
+        return None
+
+    # ── Build schedule list ──────────────────────────────────────────────────
+    all_matches_data = get_matches_data()
+    team_item = next((item for item in all_matches_data if item.get("data", {}).get("team", {}).get("matches")), None)
+    all_matches: list[dict[str, Any]] = team_item["data"]["team"]["matches"] if team_item else []
+
+    csv_rows = get_schedule_csv()
+
+    now = datetime.now(timezone.utc)
+
+    # Auto-detect current week from closest playable match by date
+    playable = [m for m in all_matches if not m.get("isBye") and m.get("startTime")]
+    closest = min(playable, key=lambda m: abs((datetime.fromisoformat(m["startTime"]) - now).total_seconds()), default=None)
+    current_week: int | None = closest["week"] if closest else None
+
+    # ── Build history index: opponent_team_id → result ──────────────────────
+    history_result: dict[str, Any] = {}
+    try:
+        hist = build_history_response(repository, status="complete", limit=20)
+        for match in hist.get("matches", []):
+            away = (match.get("away_team_name") or "").lower()
+            home = (match.get("home_team_name") or "").lower()
+            our_score = match.get("summary", {}).get("our_score")
+            their_score = match.get("summary", {}).get("their_score")
+            raw_outcome = match.get("summary", {}).get("result", "")
+            if "win" in raw_outcome:
+                outcome = "win"
+            elif "loss" in raw_outcome:
+                outcome = "loss"
+            else:
+                outcome = "tie"
+            for team in teams_out:
+                tid = team["team_id"]
+                if tid in history_result:
+                    continue
+                name_lower = team["name"].lower()
+                if name_lower in away or name_lower in home or away in name_lower or home in name_lower:
+                    history_result[tid] = {
+                        "our_score": our_score,
+                        "their_score": their_score,
+                        "outcome": outcome,
+                    }
+    except Exception as exc:
+        logger.info("Division history lookup skipped: %s", exc)
+
+    # ── Assemble schedule entries ────────────────────────────────────────────
+    schedule_out: list[dict[str, Any]] = []
+    for match in all_matches:
+        week = match["week"]
+        is_bye = bool(match.get("isBye"))
+        is_playoff = bool(match.get("isPlayoff"))
+        status = match.get("status", "UNPLAYED")
+        start_iso = match.get("startTime")
+        date_str = datetime.fromisoformat(start_iso).strftime("%Y-%m-%d") if start_iso else ""
+
+        if is_bye:
+            schedule_out.append({
+                "week": week,
+                "date": date_str,
+                "opponent": "Bye",
+                "opponent_team_id": None,
+                "location": "",
+                "is_home": True,
+                "is_bye": True,
+                "is_playoff": is_playoff,
+                "status": status,
+                "scheduled_players": [],
+                "result": None,
+            })
+            continue
+
+        is_away = "anti vill" in match.get("away", {}).get("name", "").lower()
+        opp_raw = match["home"] if is_away else match["away"]
+        is_home = not is_away
+        opp_name = opp_raw["name"]
+        opp_team_id = slugify(opp_name)
+        location = match.get("location", {}).get("name", "")
+
+        # Scheduled players from CSV for this week
+        scheduled_players: list[str] = []
+        week_rows = [r for r in csv_rows if r.get("Week") == str(week)]
+        for row in week_rows[:5]:
+            cell = str(row.get("8 ball", "")).strip()
+            if cell and cell.lower() not in ("", "nan"):
+                resolved = resolve_csv_name(cell)
+                if resolved:
+                    scheduled_players.append(resolved)
+
+        # Result from history
+        result_entry = history_result.get(opp_team_id)
+
+        schedule_out.append({
+            "week": week,
+            "date": date_str,
+            "opponent": opp_name,
+            "opponent_team_id": opp_team_id,
+            "location": location,
+            "is_home": is_home,
+            "is_bye": False,
+            "is_playoff": is_playoff,
+            "status": status,
+            "scheduled_players": scheduled_players,
+            "result": result_entry,
+        })
+
+    return {
+        "result": {
+            "current_week": current_week,
+            "schedule": schedule_out,
+            "teams": teams_out,
+        },
+        "error": None,
+    }
+
+
 def handle_players(body: dict[str, Any], query: dict[str, str]) -> dict[str, Any]:
     from player_data import get_player, get_sessions
 
@@ -809,6 +964,8 @@ def lambda_handler(event, context):  # noqa: ARG001
             result = handle_delete_match(body, repository)
         elif method == "GET" and path == "/rosters":
             result = handle_rosters(body, repository, query)
+        elif method == "GET" and path == "/division":
+            result = handle_division(body, repository, query)
         elif method in {"GET", "POST"} and path == "/players":
             result = handle_players(body, query)
         elif method == "GET" and path == "/players/profile":

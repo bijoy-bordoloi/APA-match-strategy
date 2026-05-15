@@ -156,7 +156,7 @@ th {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   position: sticky;
   top: 0;
@@ -1734,4 +1734,213 @@ th {
 .prm-team-score {
   font-weight: 400;
   color: var(--text-muted);
+}
+
+/* ── Schedule / Division View ───────────────────────────────────────── */
+.schedule-view {
+  display: grid;
+  gap: 10px;
+}
+
+.schedule-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.schedule-week-card {
+  border: 2px solid var(--green);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.schedule-week-card-header {
+  background: var(--green);
+  color: #fff;
+  padding: 10px 14px 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.schedule-week-card-header .eyebrow {
+  color: rgba(255,255,255,0.8);
+}
+
+.schedule-week-card-body {
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.schedule-week-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.schedule-week-card-meta strong {
+  font-size: 1.05rem;
+}
+
+.schedule-week-card-actions {
+  padding: 0 14px 12px;
+}
+
+.schedule-week-card-actions .primary-btn {
+  width: 100%;
+}
+
+.schedule-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-row.bye {
+  opacity: 0.5;
+}
+
+.schedule-row.playoff {
+  border-color: var(--gold);
+}
+
+.schedule-week-num {
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: var(--muted);
+  text-align: center;
+}
+
+.schedule-row-main {
+  min-width: 0;
+}
+
+.schedule-row-opponent {
+  font-weight: 750;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.schedule-row-date {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.schedule-ha-badge {
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  min-height: unset;
+  display: inline-block;
+  line-height: 1.4;
+}
+
+.schedule-ha-badge.home {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.schedule-playoff-badge {
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold);
+  min-height: unset;
+  display: inline-block;
+  line-height: 1.4;
+}
+
+.schedule-player-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.schedule-player-chip {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid transparent;
+  min-height: unset;
+  display: inline-block;
+  line-height: 1.4;
+}
+
+.schedule-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.schedule-result-badge {
+  font-size: 0.75rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 999px;
+  min-height: unset;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--paper);
+  display: inline-block;
+  line-height: 1.5;
+}
+
+.schedule-result-badge.win {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.schedule-result-badge.loss {
+  background: var(--red-soft);
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.schedule-result-badge.tie {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.schedule-result-score {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 700;
 }
