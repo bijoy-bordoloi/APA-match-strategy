@@ -1938,10 +1938,12 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
                       <div key={i} className="player-recent-row">
                         <span className="player-recent-date">{formatMatchDate(t.date)}</span>
                         <span className="player-recent-matchup">
-                          <span className="prm-player">{activePlayer.name}</span>
+                          <button className="turn-player-link prm-player" onClick={() => setActivePlayer({ name: activePlayer.name, sl: activePlayer.sl })}>{activePlayer.name}</button>
                           <span className="prm-team">({t.playerTeam})</span>
                           {' vs '}
-                          <span className="prm-player">{t.oppPlayer || '?'}</span>
+                          {t.oppPlayer ? (
+                            <button className="turn-player-link prm-player" onClick={() => { setQuery(t.oppPlayer); setNarrativeExpanded(false); setActivePlayer({ name: t.oppPlayer, sl: null }); }}>{t.oppPlayer}</button>
+                          ) : <span className="prm-player">?</span>}
                           <span className="prm-team">({t.oppTeam})</span>
                         </span>
                         <span className={`player-recent-score${t.won ? ' win' : ''}`}>
