@@ -1766,6 +1766,7 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [activePlayer, setActivePlayer] = useState(initialPlayer || null);
+  const [narrativeExpanded, setNarrativeExpanded] = useState(false);
 
   const localStats = useMemo(
     () => computeLocalPlayerStats(activePlayer?.name, historyData),
@@ -1777,6 +1778,7 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
     setProfileLoading(true);
     setProfileError('');
     setProfile(null);
+    setNarrativeExpanded(false);
     fetchPlayerProfile(activePlayer.name, activePlayer.sl || null)
       .then(({ result }) => setProfile(result))
       .catch((err) => setProfileError(err.message || 'Failed to load profile'))
@@ -1826,7 +1828,14 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
               <span className="profile-name">{activePlayer.name}</span>
               {activePlayer.sl ? <span className="pl-sl">SL {activePlayer.sl}</span> : null}
             </div>
-            {profile.narrative && <p className="profile-narrative">{profile.narrative}</p>}
+            {profile.narrative && (
+              <div className="profile-narrative-wrap">
+                <p className={`profile-narrative${narrativeExpanded ? ' expanded' : ''}`}>{profile.narrative}</p>
+                <button className="narrative-toggle" onClick={() => setNarrativeExpanded((v) => !v)}>
+                  {narrativeExpanded ? 'Less' : 'More'}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="profile-divider" />

@@ -1372,8 +1372,12 @@ th {
   color: var(--ink);
 }
 
+.profile-narrative-wrap {
+  margin-top: 10px;
+}
+
 .profile-narrative {
-  margin: 10px 0 0;
+  margin: 0;
   font-size: 14px;
   line-height: 1.45;
   color: var(--ink);
@@ -1381,6 +1385,24 @@ th {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.profile-narrative.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.narrative-toggle {
+  background: none;
+  border: none;
+  padding: 2px 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* ── Divider ─────────────────────────────────────────────────────── */
