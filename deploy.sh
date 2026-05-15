@@ -83,6 +83,7 @@ _ensure_api_routes() {
   _ensure_route "POST /players"
   _ensure_route "POST /players/search"
   _ensure_route "GET /players/profile"
+  _ensure_route "GET /division"
 }
 
 # ── Frontend ─────────────────────────────────────────────────────────────────
