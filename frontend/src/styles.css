@@ -1644,27 +1644,47 @@ th {
 }
 
 .player-recent-row {
-  display: grid;
-  grid-template-columns: 100px 1fr auto;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 0.78rem;
-  padding: 3px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border);
 }
 
 .player-recent-date {
   color: var(--text-muted);
-  white-space: nowrap;
+  font-size: 0.72rem;
 }
 
 .player-recent-matchup {
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: baseline;
+  line-height: 1.4;
+}
+
+.prm-player {
+  font-weight: 600;
+}
+
+.prm-team {
+  color: var(--text-muted);
+  font-size: 0.72rem;
 }
 
 .player-recent-score {
-  font-weight: 600;
-  white-space: nowrap;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.player-recent-score.win {
+  color: var(--green, #22c55e);
+}
+
+.prm-team-score {
+  font-weight: 400;
+  color: var(--text-muted);
 }

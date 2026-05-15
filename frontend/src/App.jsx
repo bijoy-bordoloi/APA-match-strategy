@@ -1713,42 +1713,51 @@ function buildPlayerStats(matches, myTeams) {
   return Object.values(stats).sort((a, b) => b.wins - a.wins || a.player_name.localeCompare(b.player_name));
 }
 
+function truncTeam(name, max = 14) {
+  if (!name) return '?';
+  return name.length > max ? name.slice(0, max - 1) + '…' : name;
+}
+
 function computeLocalPlayerStats(name, historyData) {
   if (!name || !historyData?.matches) return null;
   let appearances = 0, wins = 0, losses = 0;
-  const recentMatches = [];
+  const recentTurns = [];
   for (const match of historyData.matches) {
     const sc = match.source_context || {};
     const turns = Array.isArray(match.turns) && match.turns.length > 0 ? match.turns : (sc.turns || []);
     const summary = match.summary || sc.summary || {};
+    const homeTeam = match.home_team_name || match.our_team_name || 'Home';
+    const awayTeam = match.away_team_name || match.opponent_team_name || 'Away';
+    const homeTotal = summary.our_score ?? '?';
+    const awayTotal = summary.their_score ?? '?';
+
     for (const turn of turns) {
       const homePl = turn.home_player_name ?? turn.our_player_name;
       const awayPl = turn.away_player_name ?? turn.their_player_name;
       const homeScore = Number(turn.home_score ?? turn.our_score ?? 0);
       const awayScore = Number(turn.away_score ?? turn.their_score ?? 0);
-      let playerScore = null;
-      if (homePl === name) playerScore = homeScore;
-      else if (awayPl === name) playerScore = awayScore;
-      if (playerScore === null) continue;
+
+      const isHome = homePl === name;
+      const isAway = awayPl === name;
+      if (!isHome && !isAway) continue;
+
       appearances++;
+      const playerScore = isHome ? homeScore : awayScore;
+      const oppScore = isHome ? awayScore : homeScore;
       if (playerScore >= 2) wins++; else losses++;
-    }
-    const appearsInMatch = turns.some((t) =>
-      (t.home_player_name ?? t.our_player_name) === name ||
-      (t.away_player_name ?? t.their_player_name) === name
-    );
-    if (appearsInMatch) {
-      recentMatches.push({
+
+      recentTurns.push({
         date: match.date,
-        home: match.home_team_name || match.our_team_name || 'Home',
-        away: match.away_team_name || match.opponent_team_name || 'Away',
-        result: summary.result,
-        our_score: summary.our_score,
-        their_score: summary.their_score,
+        playerTeam: truncTeam(isHome ? homeTeam : awayTeam),
+        oppPlayer: isHome ? awayPl : homePl,
+        oppTeam: truncTeam(isHome ? awayTeam : homeTeam),
+        turnScore: `${playerScore}-${oppScore}`,
+        teamScore: isHome ? `${homeTotal}-${awayTotal}` : `${awayTotal}-${homeTotal}`,
+        won: playerScore >= 2,
       });
     }
   }
-  return { appearances, wins, losses, recentMatches: recentMatches.slice(0, 8) };
+  return { appearances, wins, losses, recentTurns: recentTurns.slice(0, 10) };
 }
 
 function PlayerView({ initialPlayer, historyData, onBack }) {
@@ -1913,13 +1922,22 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
                     <span>Win %</span>
                   </div>
                 </div>
-                {localStats.recentMatches.length > 0 && (
+                {localStats.recentTurns.length > 0 && (
                   <div className="player-recent-matches">
-                    {localStats.recentMatches.map((m, i) => (
+                    {localStats.recentTurns.map((t, i) => (
                       <div key={i} className="player-recent-row">
-                        <span className="player-recent-date">{formatMatchDate(m.date)}</span>
-                        <span className="player-recent-matchup">{m.home} vs {m.away}</span>
-                        <span className="player-recent-score">{m.our_score ?? '?'}–{m.their_score ?? '?'}</span>
+                        <span className="player-recent-date">{formatMatchDate(t.date)}</span>
+                        <span className="player-recent-matchup">
+                          <span className="prm-player">{activePlayer.name}</span>
+                          <span className="prm-team">({t.playerTeam})</span>
+                          {' vs '}
+                          <span className="prm-player">{t.oppPlayer || '?'}</span>
+                          <span className="prm-team">({t.oppTeam})</span>
+                        </span>
+                        <span className={`player-recent-score${t.won ? ' win' : ''}`}>
+                          {t.turnScore}
+                          <span className="prm-team-score"> ({t.teamScore})</span>
+                        </span>
                       </div>
                     ))}
                   </div>
