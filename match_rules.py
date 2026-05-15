@@ -98,16 +98,22 @@ def sorted_turns(turns: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     return sorted(turns or [], key=lambda item: int(item.get("turn_num", item.get("turn_number", 0))))
 
 
+def _tget(turn: dict[str, Any], home_key: str, our_key: str, default: Any = 0) -> Any:
+    """Read a turn field preferring home_* name, falling back to our_* for older records."""
+    v = turn.get(home_key)
+    return v if v is not None else turn.get(our_key, default)
+
+
 def calculate_match_state(turns: list[dict[str, Any]] | None, mode: str = "regular") -> MatchState:
     ordered_turns = sorted_turns(turns)
-    our_score = sum(int(turn.get("our_score", 0)) for turn in ordered_turns)
-    their_score = sum(int(turn.get("their_score", 0)) for turn in ordered_turns)
-    our_wins = sum(1 for turn in ordered_turns if int(turn.get("our_score", 0)) >= 2)
-    their_wins = sum(1 for turn in ordered_turns if int(turn.get("their_score", 0)) >= 2)
-    our_sl_used = sum(int(turn.get("our_sl_snapshot", 0)) for turn in ordered_turns)
-    their_sl_used = sum(int(turn.get("their_sl_snapshot", 0)) for turn in ordered_turns)
-    our_dp_used = any(bool(turn.get("is_our_dp")) for turn in ordered_turns)
-    their_dp_used = any(bool(turn.get("is_their_dp")) for turn in ordered_turns)
+    our_score = sum(int(_tget(t, "home_score", "our_score")) for t in ordered_turns)
+    their_score = sum(int(_tget(t, "away_score", "their_score")) for t in ordered_turns)
+    our_wins = sum(1 for t in ordered_turns if int(_tget(t, "home_score", "our_score")) >= 2)
+    their_wins = sum(1 for t in ordered_turns if int(_tget(t, "away_score", "their_score")) >= 2)
+    our_sl_used = sum(int(_tget(t, "home_sl_snapshot", "our_sl_snapshot")) for t in ordered_turns)
+    their_sl_used = sum(int(_tget(t, "away_sl_snapshot", "their_sl_snapshot")) for t in ordered_turns)
+    our_dp_used = any(bool(t.get("is_home_dp") or t.get("is_our_dp")) for t in ordered_turns)
+    their_dp_used = any(bool(t.get("is_away_dp") or t.get("is_their_dp")) for t in ordered_turns)
 
     clinched_by = None
     if mode == "playoff":
@@ -133,7 +139,13 @@ def calculate_match_state(turns: list[dict[str, Any]] | None, mode: str = "regul
 
 
 def _name_for(turn: dict[str, Any], side: str) -> str:
-    return str(turn.get(f"{side}_player_name") or turn.get(f"{side}_player_id") or "")
+    home_side = "home" if side == "our" else "away"
+    return str(
+        turn.get(f"{home_side}_player_name")
+        or turn.get(f"{side}_player_name")
+        or turn.get(f"{side}_player_id")
+        or ""
+    )
 
 
 def play_counts(turns: list[dict[str, Any]] | None, side: str) -> Counter[str]:
@@ -141,8 +153,9 @@ def play_counts(turns: list[dict[str, Any]] | None, side: str) -> Counter[str]:
 
 
 def is_dp_used(turns: list[dict[str, Any]] | None, side: str) -> bool:
-    flag = "is_our_dp" if side == "our" else "is_their_dp"
-    return any(bool(turn.get(flag)) for turn in sorted_turns(turns))
+    home_flag = "is_home_dp" if side == "our" else "is_away_dp"
+    our_flag = "is_our_dp" if side == "our" else "is_their_dp"
+    return any(bool(t.get(home_flag) or t.get(our_flag)) for t in sorted_turns(turns))
 
 
 def eligible_players(
@@ -216,8 +229,7 @@ def validate_turn(
 
     if state.our_sl_used + int(our_sl) > MAX_TEAM_SL:
         raise RuleViolation(f"Our SL total would exceed {MAX_TEAM_SL}.")
-    if state.their_sl_used + int(their_sl) > MAX_TEAM_SL:
-        raise RuleViolation(f"Their SL total would exceed {MAX_TEAM_SL}.")
+    # Opponent SL is not enforced here — we record what actually happened.
 
     return {
         "turn_num": state.turn_number,

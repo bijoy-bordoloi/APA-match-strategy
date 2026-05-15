@@ -74,3 +74,10 @@ export const QUICK_QUESTIONS = [
   'Summarize the match so far',
   'What did we do in a similar situation?',
 ];
+
+// Maps Google email → lowercase team name variants for perspective resolution.
+// Both spellings of AVL are included because the scraper stores a misspelled variant.
+// See APA-25 for the full identity/multi-team solution.
+export const USER_TEAMS = {
+  'bbordoloi@gmail.com': ['anti-villain league', 'the anti villian league'],
+};

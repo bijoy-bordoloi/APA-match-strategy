@@ -47,6 +47,7 @@ import {
   OUR_TEAM,
   QUICK_QUESTIONS,
   SCORE_OPTIONS,
+  USER_TEAMS,
 } from './data/defaultData.js';
 
 const MAX_SL = 23;
@@ -1645,6 +1646,50 @@ function SummaryView({
 
 const HISTORY_PAGE_SIZE = 20;
 
+function getUserEmail() {
+  try {
+    const token = localStorage.getItem('apa-gis-token');
+    return token ? JSON.parse(atob(token.split('.')[1])).email : null;
+  } catch { return null; }
+}
+
+// Returns { flipped, involved }.
+// flipped=true means stored 'our_*' fields belong to the other team — swap for display.
+// involved=false means neither side is the user's team — show match neutrally.
+function resolveMatchPerspective(match, myTeams) {
+  if (!myTeams?.length) return { flipped: false, involved: false };
+  const home = (match.home_team_name || match.our_team_name || '').toLowerCase();
+  const away = (match.away_team_name || match.opponent_team_name || '').toLowerCase();
+  if (myTeams.includes(home)) return { flipped: false, involved: true };
+  if (myTeams.includes(away)) return { flipped: true, involved: true };
+  return { flipped: false, involved: false };
+}
+
+function buildPlayerStats(matches, myTeams) {
+  const stats = {};
+  for (const match of matches) {
+    const { flipped, involved } = resolveMatchPerspective(match, myTeams);
+    if (!involved) continue;
+    const sc = match.source_context || {};
+    const turns = Array.isArray(match.turns) && match.turns.length > 0
+      ? match.turns : (sc.turns || []);
+    for (const turn of turns) {
+      const name = flipped
+        ? (turn.away_player_name ?? turn.their_player_name)
+        : (turn.home_player_name ?? turn.our_player_name);
+      const ourScore = Number(flipped
+        ? (turn.away_score ?? turn.their_score ?? 0)
+        : (turn.home_score ?? turn.our_score ?? 0));
+      if (!name) continue;
+      const s = stats[name] ?? (stats[name] = { player_name: name, wins: 0, losses: 0, points: 0, appearances: 0 });
+      s.appearances += 1;
+      s.points += ourScore;
+      if (ourScore >= 2) s.wins += 1; else s.losses += 1;
+    }
+  }
+  return Object.values(stats).sort((a, b) => b.wins - a.wins || a.player_name.localeCompare(b.player_name));
+}
+
 function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete }) {
   const [divisionFilter, setDivisionFilter] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
@@ -1653,9 +1698,18 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
 
   const matches = historyData.matches;
 
+  const myTeams = (() => {
+    const email = getUserEmail();
+    return email ? (USER_TEAMS[email] || []) : [];
+  })();
+  const playerStats = buildPlayerStats(matches, myTeams);
+
   const uniqueDivisions = [...new Set(matches.map((m) => m.division_name).filter(Boolean))].sort();
   const uniqueTeams = [...new Set(
-    matches.flatMap((m) => [m.our_team_name, m.opponent_team_name]).filter(Boolean)
+    matches.flatMap((m) => [
+      m.home_team_name || m.our_team_name,
+      m.away_team_name || m.opponent_team_name,
+    ]).filter(Boolean)
   )].sort();
   const uniquePlayers = [...new Set(
     matches.flatMap((m) => {
@@ -1671,9 +1725,9 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
     if (divisionFilter && m.division_name !== divisionFilter) return false;
     if (teamFilter) {
       const q = teamFilter.toLowerCase();
-      const matchesOur = (m.our_team_name || '').toLowerCase().includes(q);
-      const matchesTheir = (m.opponent_team_name || '').toLowerCase().includes(q);
-      if (!matchesOur && !matchesTheir) return false;
+      const home = (m.home_team_name || m.our_team_name || '').toLowerCase();
+      const away = (m.away_team_name || m.opponent_team_name || '').toLowerCase();
+      if (!home.includes(q) && !away.includes(q)) return false;
     }
     if (playerFilter) {
       const sc = m.source_context || {};
@@ -1744,6 +1798,7 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
             <HistoryCard
               key={match.match_id}
               match={match}
+              myTeams={myTeams}
               expanded={expandedHistory === match.match_id}
               onToggle={() => setExpandedHistory(expandedHistory === match.match_id ? null : match.match_id)}
               onEdit={() => onReEdit(match)}
@@ -1776,7 +1831,7 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
           <h2>Player Stats</h2>
         </div>
         <div className="stat-list">
-          {historyData.player_stats.map((player) => (
+          {playerStats.map((player) => (
             <div key={player.player_name} className="stat-line">
               <strong>{player.player_name}</strong>
               <span>{player.wins}-{player.losses}</span>
@@ -1794,7 +1849,7 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
   );
 }
 
-function HistoryCard({ match, expanded, onToggle, onEdit, onDelete }) {
+function HistoryCard({ match, myTeams, expanded, onToggle, onEdit, onDelete }) {
   // TURN# DynamoDB writes fail when the submit payload violates a backend rule
   // (e.g. opponent SL > 23). In those cases the actual data lives in
   // source_context, which is always stored regardless of turn validation.
@@ -1803,12 +1858,25 @@ function HistoryCard({ match, expanded, onToggle, onEdit, onDelete }) {
   const turns = hasTurns ? match.turns : (sc.turns || []);
   const summary = hasTurns ? (match.summary || {}) : (sc.summary || match.summary || {});
 
-  const ourWins = summary.our_wins ?? 0;
-  const theirWins = summary.their_wins ?? 0;
-  const won = ourWins > theirWins;
-  const scoreStr = `${summary.our_score ?? 0}-${summary.their_score ?? 0}`;
-  const opponent = match.opponent_team_name || match.away_team_id || 'Unknown';
-  const ourTeam = match.our_team_name || 'AVL';
+  const { flipped, involved } = resolveMatchPerspective(match, myTeams);
+
+  // Raw stored values (always from home/stored perspective)
+  // Support both home/away (new) and our/their (old source_context) field names
+  const homeTeam = match.home_team_name || match.our_team_name || 'Home';
+  const awayTeam = match.away_team_name || match.opponent_team_name || 'Away';
+  const rawHomeScore = summary.our_score ?? match.our_points_total ?? 0;
+  const rawAwayScore = summary.their_score ?? match.their_points_total ?? 0;
+  const rawHomeWins = summary.our_wins ?? match.our_matches_won ?? 0;
+  const rawAwayWins = summary.their_wins ?? match.their_matches_won ?? 0;
+
+  // Display values — swap if stored home perspective belongs to the opposing team
+  const displayOurScore = flipped ? rawAwayScore : rawHomeScore;
+  const displayTheirScore = flipped ? rawHomeScore : rawAwayScore;
+  const won = flipped ? rawAwayWins > rawHomeWins : rawHomeWins > rawAwayWins;
+  const scoreStr = `${displayOurScore}-${displayTheirScore}`;
+
+  const ourTeam = flipped ? awayTeam : homeTeam;
+  const opponent = flipped ? homeTeam : awayTeam;
   const submittedDate = match.updated_at || match.created_at;
 
   return (
@@ -1823,7 +1891,9 @@ function HistoryCard({ match, expanded, onToggle, onEdit, onDelete }) {
         <div className="history-card-main">
           <span className="history-opponent">{ourTeam} vs {opponent}</span>
           <span className="history-card-result">
-            <span className={`result-badge${won ? '' : ' loss'}`}>{won ? 'W' : 'L'}</span>
+            {involved && (
+              <span className={`result-badge${won ? '' : ' loss'}`}>{won ? 'W' : 'L'}</span>
+            )}
             <strong className="history-score">{scoreStr}</strong>
           </span>
         </div>
@@ -1845,15 +1915,23 @@ function HistoryCard({ match, expanded, onToggle, onEdit, onDelete }) {
       {expanded && (
         <div className="history-turns">
           {turns.length ? turns.map((turn) => {
-            const turnWon = Number(turn.our_score) >= 2;
+            const homePl = turn.home_player_name ?? turn.our_player_name;
+            const awayPl = turn.away_player_name ?? turn.their_player_name;
+            const homeScore = Number(turn.home_score ?? turn.our_score ?? 0);
+            const awayScore = Number(turn.away_score ?? turn.their_score ?? 0);
+            const ourPlayer = flipped ? awayPl : homePl;
+            const theirPlayer = flipped ? homePl : awayPl;
+            const ourTurnScore = flipped ? awayScore : homeScore;
+            const theirTurnScore = flipped ? homeScore : awayScore;
+            const turnWon = ourTurnScore >= 2;
             return (
               <div key={turn.turn_num} className="turn-row">
                 <span className={`t-badge ${turnWon ? 'win' : 'loss'}`}>T{turn.turn_num}</span>
                 <span className="turn-players">
-                  {turn.our_player_name} vs {turn.their_player_name}
+                  {ourPlayer} vs {theirPlayer}
                 </span>
                 <span className={`turn-score${turnWon ? ' win' : ''}`}>
-                  {turn.our_score}-{turn.their_score}
+                  {ourTurnScore}-{theirTurnScore}
                 </span>
               </div>
             );

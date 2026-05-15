@@ -24,6 +24,36 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+# Field rename map applied at write time so DynamoDB stores neutral home/away names.
+# Reads use compat fallbacks (home_* or our_*) for backward compat with existing data.
+_MATCH_FIELD_MAP = {
+    "our_team_name": "home_team_name",
+    "opponent_team_name": "away_team_name",
+    "our_roster": "home_roster",
+    "their_roster": "away_roster",
+}
+_TURN_FIELD_MAP = {
+    "our_player_name": "home_player_name",
+    "our_player_id": "home_player_id",
+    "our_score": "home_score",
+    "our_sl_snapshot": "home_sl_snapshot",
+    "is_our_dp": "is_home_dp",
+    "their_player_name": "away_player_name",
+    "their_player_id": "away_player_id",
+    "their_score": "away_score",
+    "their_sl_snapshot": "away_sl_snapshot",
+    "is_their_dp": "is_away_dp",
+}
+
+
+def _rename_fields(d: dict[str, Any], field_map: dict[str, str]) -> dict[str, Any]:
+    result = dict(d)
+    for old, new in field_map.items():
+        if old in result and new not in result:
+            result[new] = result.pop(old)
+    return result
+
+
 def slugify(value: str) -> str:
     slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in str(value)).strip("-")
     return "-".join(part for part in slug.split("-") if part) or str(uuid.uuid4())
@@ -88,15 +118,16 @@ class MatchRepository:
     def put_match(self, match: dict[str, Any]) -> dict[str, Any]:
         now = utc_now()
         match_id = str(match.get("match_id") or uuid.uuid4())
+        translated = _rename_fields(match, _MATCH_FIELD_MAP)
         item = {
-            **match,
+            **translated,
             "PK": f"MATCH#{match_id}",
             "SK": "METADATA",
             "entity_type": "MATCH",
             "match_id": match_id,
-            "status": match.get("status", "planned"),
-            "mode": match.get("mode", "regular"),
-            "created_at": match.get("created_at", now),
+            "status": translated.get("status", "planned"),
+            "mode": translated.get("mode", "regular"),
+            "created_at": translated.get("created_at", now),
             "updated_at": now,
         }
         self.table.put_item(Item=_clean_for_dynamo(item))
@@ -125,8 +156,9 @@ class MatchRepository:
 
     def put_turn(self, match_id: str, turn: dict[str, Any]) -> dict[str, Any]:
         turn_num = int(turn["turn_num"])
+        translated = _rename_fields(turn, _TURN_FIELD_MAP)
         item = {
-            **turn,
+            **translated,
             "PK": f"MATCH#{match_id}",
             "SK": f"TURN#{turn_num:02d}",
             "entity_type": "TURN",
@@ -137,12 +169,7 @@ class MatchRepository:
         return _from_dynamo(item)
 
     def replace_turns(self, match_id: str, turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Overwrite all turn rows for a match.
-
-        This powers the summary/history edit flow. It deletes stale TURN rows
-        first so a playoff edit from five turns down to three cannot leave
-        old rows hanging around in history.
-        """
+        """Overwrite all turn rows for a match."""
         existing = self.get_match(match_id)
         old_turns = existing["turns"] if existing else []
         with self.table.batch_writer() as batch:
@@ -150,8 +177,9 @@ class MatchRepository:
                 batch.delete_item(Key={"PK": f"MATCH#{match_id}", "SK": turn["SK"]})
             for turn in turns:
                 turn_num = int(turn["turn_num"])
+                translated = _rename_fields(turn, _TURN_FIELD_MAP)
                 item = {
-                    **turn,
+                    **translated,
                     "PK": f"MATCH#{match_id}",
                     "SK": f"TURN#{turn_num:02d}",
                     "entity_type": "TURN",
@@ -233,7 +261,7 @@ def build_history_context(repository: MatchRepository, limit: int = 8) -> dict[s
 
     recent = [
         {
-            "opponent": m.get("opponent_team_name"),
+            "opponent": m.get("away_team_name") or m.get("opponent_team_name"),
             "date": m.get("date"),
             "result": m.get("summary", {}).get("result"),
             "our_score": m.get("summary", {}).get("our_score"),
@@ -274,7 +302,8 @@ def build_history_response(repository: MatchRepository, *, status: str = "comple
             }
         )
         for turn in turns:
-            name = turn.get("our_player_name") or turn.get("our_player_id")
+            name = turn.get("home_player_name") or turn.get("our_player_name") or turn.get("our_player_id")
+            score = int(turn.get("home_score") or turn.get("our_score") or 0)
             if not name:
                 continue
             stats = player_stats.setdefault(
@@ -288,8 +317,8 @@ def build_history_response(repository: MatchRepository, *, status: str = "comple
                 },
             )
             stats["appearances"] += 1
-            stats["points"] += int(turn.get("our_score", 0))
-            if int(turn.get("our_score", 0)) >= 2:
+            stats["points"] += score
+            if score >= 2:
                 stats["wins"] += 1
             else:
                 stats["losses"] += 1

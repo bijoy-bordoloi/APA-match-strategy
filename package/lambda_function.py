@@ -251,9 +251,9 @@ def handle_result(body: dict[str, Any], repository: MatchRepository) -> dict[str
     )
     saved_turn = repository.put_turn(match_id, normalized)
     repository.update_h2h(
-        saved_turn["our_player_id"],
-        saved_turn["their_player_id"],
-        won=int(saved_turn["our_score"]) >= 2,
+        saved_turn.get("home_player_id") or saved_turn.get("our_player_id"),
+        saved_turn.get("away_player_id") or saved_turn.get("their_player_id"),
+        won=int(saved_turn.get("home_score") or saved_turn.get("our_score") or 0) >= 2,
     )
 
     reloaded = repository.get_match(match_id)
@@ -860,7 +860,8 @@ def _player_name(turn_body: dict[str, Any], match: dict[str, Any], *, side: str)
         player_id = turn_body.get(f"{prefix}_player_id")
         if player_id:
             break
-    roster = match.get("our_roster" if side == "our" else "their_roster", {})
+    roster = (match.get("home_roster" if side == "our" else "away_roster")
+              or match.get("our_roster" if side == "our" else "their_roster", {}))
     if player_id:
         expected_id = str(player_id)
         for name in roster:
@@ -872,10 +873,10 @@ def _player_name(turn_body: dict[str, Any], match: dict[str, Any], *, side: str)
 def _skill_level(turn_body: dict[str, Any], match: dict[str, Any], name: str, *, side: str) -> int:
     if side == "our":
         explicit = turn_body.get("our_sl_snapshot") or turn_body.get("our_sl")
-        roster = match.get("our_roster", {})
+        roster = match.get("home_roster") or match.get("our_roster", {})
     else:
         explicit = turn_body.get("their_sl_snapshot") or turn_body.get("their_sl") or turn_body.get("opponent_sl")
-        roster = match.get("their_roster", {})
+        roster = match.get("away_roster") or match.get("their_roster", {})
     if explicit is not None:
         return int(explicit)
     if name not in roster:
