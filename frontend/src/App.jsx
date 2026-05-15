@@ -1817,18 +1817,19 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
         <button type="submit" className="player-search-btn">Go</button>
       </form>
 
-      {profileError && <p className="notice">{profileError}</p>}
       {profileLoading && <ProfileSkeleton />}
 
-      {activePlayer && !profileLoading && profile && (
+      {activePlayer && !profileLoading && (
         <div className="player-profile-full">
+
+          {/* Identity + narrative — always show when a player is selected */}
           <div className="profile-zone-a">
             <div className="profile-identity">
-              {profile.form && <FormBadge badge={profile.form.badge} reliable={profile.form.reliable} />}
+              {profile?.form && <FormBadge badge={profile.form.badge} reliable={profile.form.reliable} />}
               <span className="profile-name">{activePlayer.name}</span>
               {activePlayer.sl ? <span className="pl-sl">SL {activePlayer.sl}</span> : null}
             </div>
-            {profile.narrative && (
+            {profile?.narrative && (
               <div className="profile-narrative-wrap">
                 <p className={`profile-narrative${narrativeExpanded ? ' expanded' : ''}`}>{profile.narrative}</p>
                 <button className="narrative-toggle" onClick={() => setNarrativeExpanded((v) => !v)}>
@@ -1838,77 +1839,88 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
             )}
           </div>
 
-          <div className="profile-divider" />
-          <div className="profile-zone-b">
-            <div className="profile-metric">
-              <strong>{profile.player.eb_win_pct != null ? `${Math.round(profile.player.eb_win_pct)}%` : '—'}</strong>
-              <span>Win %</span>
-            </div>
-            <div className="profile-metric">
-              <strong>{profile.player.eb_matches_played ?? '—'}</strong>
-              <span>Matches</span>
-            </div>
-            <div className="profile-metric">
-              <strong>{profile.player.avg_opponent_sl != null ? Number(profile.player.avg_opponent_sl).toFixed(1) : '—'}</strong>
-              <span>Avg Opp SL</span>
-            </div>
-            <div className="profile-metric">
-              <strong>{profile.player.eb_rackless ?? '—'}</strong>
-              <span>Rackless</span>
-            </div>
-            <div className="profile-metric">
-              <strong>{profile.player.eb_break_and_runs ?? '—'}</strong>
-              <span>B&amp;Rs</span>
-            </div>
-            <div className="profile-metric">
-              <strong>{profile.player.eb_defensive_shot_avg != null ? Number(profile.player.eb_defensive_shot_avg).toFixed(2) : '—'}</strong>
-              <span>DSA</span>
-            </div>
-          </div>
-
-          {profile.player.apr && (
+          {/* Neon lifetime stats — only when found in APA database */}
+          {profile?.neon_found && (
             <>
               <div className="profile-divider" />
-              <div className="profile-zone-c">
-                <span className="profile-section-label">APR Score</span>
-                <div className="profile-zone-b" style={{ marginTop: 8 }}>
-                  <div className="profile-metric">
-                    <strong>{profile.player.apr.score}</strong>
-                    <span>APR ({profile.player.apr.band})</span>
-                  </div>
-                  <div className="profile-metric">
-                    <strong>{profile.player.apr.mps}</strong>
-                    <span>MPS</span>
-                  </div>
-                  <div className="profile-metric">
-                    <strong>{profile.player.apr.ppms}</strong>
-                    <span>PPMS</span>
-                  </div>
-                  <div className="profile-metric">
-                    <strong>{profile.player.apr.pas}</strong>
-                    <span>PAS</span>
-                  </div>
+              <div className="profile-zone-b">
+                <div className="profile-metric">
+                  <strong>{profile.player.eb_win_pct != null ? `${Math.round(profile.player.eb_win_pct)}%` : '—'}</strong>
+                  <span>Win %</span>
+                </div>
+                <div className="profile-metric">
+                  <strong>{profile.player.eb_matches_played ?? '—'}</strong>
+                  <span>Matches</span>
+                </div>
+                <div className="profile-metric">
+                  <strong>{profile.player.avg_opponent_sl != null ? Number(profile.player.avg_opponent_sl).toFixed(1) : '—'}</strong>
+                  <span>Avg Opp SL</span>
+                </div>
+                <div className="profile-metric">
+                  <strong>{profile.player.eb_rackless ?? '—'}</strong>
+                  <span>Rackless</span>
+                </div>
+                <div className="profile-metric">
+                  <strong>{profile.player.eb_break_and_runs ?? '—'}</strong>
+                  <span>B&amp;Rs</span>
+                </div>
+                <div className="profile-metric">
+                  <strong>{profile.player.eb_defensive_shot_avg != null ? Number(profile.player.eb_defensive_shot_avg).toFixed(2) : '—'}</strong>
+                  <span>DSA</span>
                 </div>
               </div>
-            </>
-          )}
 
-          {profile.recent_sessions?.length > 0 && (
-            <>
-              <div className="profile-divider" />
-              <div className="profile-zone-d">
-                <span className="profile-section-label">APA Sessions</span>
-                {profile.recent_sessions.map((s, i) => (
-                  <div key={i} className="profile-session-row">
-                    <span className="session-name">{s.session_name || '—'}</span>
-                    <span className="session-record">{s.matches_won}W–{s.matches_played - s.matches_won}L</span>
-                    {s.team_name && <span className="session-team">{s.team_name}</span>}
+              {profile.player.apr && (
+                <>
+                  <div className="profile-divider" />
+                  <div className="profile-zone-c">
+                    <span className="profile-section-label">APR Score</span>
+                    <div className="profile-zone-b" style={{ marginTop: 8 }}>
+                      <div className="profile-metric">
+                        <strong>{profile.player.apr.score}</strong>
+                        <span>APR ({profile.player.apr.band})</span>
+                      </div>
+                      <div className="profile-metric">
+                        <strong>{profile.player.apr.mps}</strong>
+                        <span>MPS</span>
+                      </div>
+                      <div className="profile-metric">
+                        <strong>{profile.player.apr.ppms}</strong>
+                        <span>PPMS</span>
+                      </div>
+                      <div className="profile-metric">
+                        <strong>{profile.player.apr.pas}</strong>
+                        <span>PAS</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                </>
+              )}
+
+              {profile.recent_sessions?.length > 0 && (
+                <>
+                  <div className="profile-divider" />
+                  <div className="profile-zone-d">
+                    <span className="profile-section-label">APA Sessions</span>
+                    {profile.recent_sessions.map((s, i) => (
+                      <div key={i} className="profile-session-row">
+                        <span className="session-name">{s.session_name || '—'}</span>
+                        <span className="session-record">{s.matches_won}W–{s.matches_played - s.matches_won}L</span>
+                        {s.team_name && <span className="session-team">{s.team_name}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
 
+          {/* Not found in Neon but we tried */}
+          {profile && !profile.neon_found && (
+            <p className="profile-not-found">Not found in APA stats database — try a different name spelling.</p>
+          )}
+
+          {/* AVL local stats — always shown when history data exists, regardless of Neon */}
           {localStats && localStats.appearances > 0 && (
             <>
               <div className="profile-divider" />
@@ -1960,9 +1972,6 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
         </div>
       )}
 
-      {activePlayer && !profileLoading && !profile && !profileError && (
-        <p className="empty-state">No Neon data found for "{activePlayer.name}".</p>
-      )}
       </section>
     </main>
   );

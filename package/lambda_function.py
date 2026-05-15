@@ -544,7 +544,7 @@ def handle_players_profile(body: dict[str, Any], query: dict[str, str], reposito
 
     player = results["player"]
     if player is None:
-        raise NotFound(f"Player not found: {name or member_id}")
+        return {"result": {"player": None, "form": None, "narrative": None, "recent_sessions": [], "neon_found": False}, "error": None}
 
     player_sl = player_sl_param if player_sl_param is not None else int(player.get("skill_level") or 5)
     peer_baseline = _PEER_BASELINE.get(player_sl, 0.50)
@@ -655,6 +655,7 @@ def handle_players_profile(body: dict[str, Any], query: dict[str, str], reposito
         },
         "narrative": narrative,
         "recent_sessions": recent_sessions_out,
+        "neon_found": True,
         "cached_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     if opponent_player_id is not None:

@@ -1393,6 +1393,13 @@ th {
   overflow: visible;
 }
 
+.profile-not-found {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .narrative-toggle {
   background: none;
   border: none;
