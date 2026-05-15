@@ -156,7 +156,7 @@ th {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   position: sticky;
   top: 0;
@@ -1557,7 +1557,7 @@ th {
 
 /* ── Player view ─────────────────────────────────────────────────── */
 .player-view {
-  padding: 0 16px 32px;
+  padding-bottom: 16px;
 }
 
 .player-view-header {

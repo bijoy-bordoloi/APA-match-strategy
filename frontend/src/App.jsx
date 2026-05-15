@@ -1790,7 +1790,8 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
   }
 
   return (
-    <main className="player-view tool-surface">
+    <main className="history-layout">
+      <section className="tool-surface player-view">
       <div className="player-view-header">
         <button className="ghost-button player-back-btn" onClick={onBack}>
           <ChevronLeft size={18} /> Back
@@ -1951,6 +1952,7 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
       {activePlayer && !profileLoading && !profile && !profileError && (
         <p className="empty-state">No Neon data found for "{activePlayer.name}".</p>
       )}
+      </section>
     </main>
   );
 }
