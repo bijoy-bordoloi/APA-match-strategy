@@ -1162,22 +1162,42 @@ function LiveView({
       );
     }
 
-    // Eligible and ineligible remaining
+    // Eligible, replay, and ineligible remaining
+    const isLastTurn = nextTurn >= MAX_TURNS;
+    let replayBannerInserted = false;
     Object.keys(roster).forEach((name) => {
       if (name === sel) return;
       const count = counts[name] || 0;
       if (count >= 2) return;
       if (count === 1 && dpUsed) return;
+      // Players who've already played are hidden until turn 5 — they appear in
+      // the completed-turns section above. On turn 5 they re-appear only if
+      // eligible as a Replay Rule candidate (no fresh players remain).
+      if (count === 1 && !eligible[name]) return;
+      if (count === 1 && !isLastTurn) return;
+
       const sl = roster[name];
       const oppId = opponentSelected
         ? opponentSelected.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
         : undefined;
+
       if (count === 1) {
+        // Replay Rule candidate — insert banner once, then render as selectable
+        if (!replayBannerInserted) {
+          replayBannerInserted = true;
+          rows.push(
+            <div key="replay-banner" className="replay-rule-banner">
+              {side === 'our'
+                ? 'Replay Rule — opponent picks the player'
+                : 'Replay Rule — you pick their player'}
+            </div>,
+          );
+        }
         rows.push(
-          <button key={`dp-${name}`} className="p-row" data-name={name}
+          <button key={`replay-${name}`} className="p-row" data-name={name}
             onClick={() => onSelect(name)}
             {...makeLongPressHandlers(name, sl, oppId)}>
-            <span className="t-badge dp">DP</span>
+            <span className="t-badge replay">RP</span>
             <span className="p-name">{abbrev(name)}</span>
             <span className="pl-sl">SL {sl}</span>
             {profileBtn(name, sl)}
@@ -1185,6 +1205,7 @@ function LiveView({
         );
         return;
       }
+
       if (eligible[name]) {
         rows.push(
           <button key={`elig-${name}`} className="p-row" data-name={name}
@@ -2430,14 +2451,30 @@ function getEligible(roster, turns, side, options = {}) {
     0,
   );
   const room = MAX_SL - slUsed;
-  return Object.entries(roster).reduce((acc, [name, sl]) => {
+  const isLastTurn = turns.length + 1 >= MAX_TURNS;
+
+  // First pass: fresh players only
+  const fresh = Object.entries(roster).reduce((acc, [name, sl]) => {
     const count = counts[name] || 0;
-    if (count >= 2) return acc;
-    if (count === 1 && dpUsed) return acc;
+    if (count !== 0) return acc;
     if (options.enforceBudget !== false && Number(sl) > room) return acc;
     acc[name] = Number(sl);
     return acc;
   }, {});
+
+  // Include DP candidates only on the final turn and only when no fresh players remain
+  if (isLastTurn && !dpUsed && Object.keys(fresh).length === 0) {
+    return Object.entries(roster).reduce((acc, [name, sl]) => {
+      const count = counts[name] || 0;
+      if (count >= 2) return acc;
+      if (count === 1 && dpUsed) return acc;
+      if (options.enforceBudget !== false && Number(sl) > room) return acc;
+      acc[name] = Number(sl);
+      return acc;
+    }, {});
+  }
+
+  return fresh;
 }
 
 function summarizeTurns(turns, mode) {
