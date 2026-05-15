@@ -1715,7 +1715,10 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
     matches.flatMap((m) => {
       const sc = m.source_context || {};
       const turns = Array.isArray(m.turns) && m.turns.length > 0 ? m.turns : (sc.turns || []);
-      return turns.flatMap((t) => [t.our_player_name, t.their_player_name]).filter(Boolean);
+      return turns.flatMap((t) => [
+        t.home_player_name ?? t.our_player_name,
+        t.away_player_name ?? t.their_player_name,
+      ]).filter(Boolean);
     })
   )].sort();
 
@@ -1732,7 +1735,10 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
     if (playerFilter) {
       const sc = m.source_context || {};
       const turns = Array.isArray(m.turns) && m.turns.length > 0 ? m.turns : (sc.turns || []);
-      const played = turns.some((t) => t.our_player_name === playerFilter || t.their_player_name === playerFilter);
+      const played = turns.some((t) =>
+        (t.home_player_name ?? t.our_player_name) === playerFilter ||
+        (t.away_player_name ?? t.their_player_name) === playerFilter
+      );
       if (!played) return false;
     }
     return true;
