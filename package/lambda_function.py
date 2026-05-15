@@ -41,6 +41,20 @@ from match_rules import (
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Compact APA 8-ball rules injected into every LLM call (~100 tokens).
+# Full rules reference lives in configurations/rules-reference.txt.
+_APA_RULES_COMPACT = (
+    "APA 8-Ball SL-23 format: 5 players/team, 5 turns/night. "
+    "SL-23 budget: sl_used + next_sl + (remaining_turns×2) ≤ 23. "
+    "Turn scores: 3-0, 2-0, 2-1, 1-2, 0-2, 0-3 (points, not games). "
+    "Regular season: maximize total points (win night at 8+/10). "
+    "Playoff: first team to 3 individual wins. "
+    "Replay Rule (double play): forfeit-prevention ONLY — never tactical. "
+    "Only on the final turn (turn 5) in regular season when no fresh players remain. "
+    "Not available in playoffs. OPPONENT picks the replay player. "
+    "One DP per team per night. No player may play a third time."
+)
+
 
 class NotFound(ValueError):
     pass
@@ -187,15 +201,7 @@ def handle_suggest(body: dict[str, Any], repository: MatchRepository) -> dict[st
         except Exception as exc:
             logger.info("APR enrichment skipped for suggest: %s", exc)
 
-        enriched_context["eligibility_rules"] = (
-            "APA 8-Ball eligibility (hard constraints): "
-            "(1) SL-23 rule: sl_used_so_far + next_player_sl + (remaining_turns × 2) must be ≤ 23. "
-            "(2) No player may play a third time — hard forfeit. "
-            "(3) Replay Rule (double play): forfeit-prevention ONLY, never a tactical choice. "
-            "Only allowed on the final match (match 5) in regular season when no fresh players remain. "
-            "Not available in playoffs. The OPPONENT picks the replay player, not the captain. "
-            "Never suggest a player who has already played unless eligible_our_players explicitly includes them."
-        )
+        enriched_context["eligibility_rules"] = _APA_RULES_COMPACT
         suggestion = generate_suggestion(
             action=action,
             eligible_our_players={name: int(sl) for name, sl in eligible_ours.items()},
@@ -217,13 +223,27 @@ def handle_chat(body: dict[str, Any], repository: MatchRepository) -> dict[str, 
     match_context = _context_from_body_or_match(body, repository)
     match_context = _enrich_with_h2h(match_context, repository)
     match_context = _enrich_with_history(match_context, repository)
+    match_context["apa_rules"] = _APA_RULES_COMPACT
     try:
-        from config_loader import get_rules_reference
-        rules = get_rules_reference()
-        if rules:
-            match_context["apa_rules"] = rules
+        from player_data import get_apr_for_names, apr_band
+        all_names = (
+            list((match_context.get("our_roster") or {}).keys())
+            + list((match_context.get("their_roster") or {}).keys())
+        )
+        if all_names:
+            apr_map = get_apr_for_names(all_names)
+            if apr_map:
+                match_context["roster_apr"] = {
+                    name: {
+                        "score": round(row["apr"], 1),
+                        "band": apr_band(row["apr"]),
+                        "match_count": row.get("match_count"),
+                    }
+                    for name, row in apr_map.items()
+                    if row.get("apr") is not None
+                }
     except Exception as exc:
-        logger.info("Rules reference skipped for chat: %s", exc)
+        logger.info("Roster APR enrichment skipped for chat: %s", exc)
     reply = generate_response(message, match_context, body.get("history", []))
     return {"reply": reply, "result": reply, "error": None}
 
