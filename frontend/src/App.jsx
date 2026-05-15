@@ -1643,7 +1643,7 @@ function SummaryView({
   );
 }
 
-const HISTORY_PAGE_SIZE = 5;
+const HISTORY_PAGE_SIZE = 20;
 
 function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete }) {
   const [divisionFilter, setDivisionFilter] = useState('');
