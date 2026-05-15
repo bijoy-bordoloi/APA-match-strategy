@@ -568,32 +568,46 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
     current_week: int | None = closest["week"] if closest else None
 
     # ── Build history index: opponent_team_id → result ──────────────────────
+    # Query with a large limit so scraper-seeded matches from other teams
+    # don't crowd out AVL's own matches; filter to AVL matches only before
+    # calling get_match to avoid unnecessary DynamoDB round-trips.
     history_result: dict[str, Any] = {}
     try:
-        hist = build_history_response(repository, status="complete", limit=20)
-        for match in hist.get("matches", []):
-            away = (match.get("away_team_name") or "").lower()
-            home = (match.get("home_team_name") or "").lower()
-            our_score = match.get("summary", {}).get("our_score")
-            their_score = match.get("summary", {}).get("their_score")
-            raw_outcome = match.get("summary", {}).get("result") or ""
-            if "win" in raw_outcome:
+        all_complete = repository.list_matches(status="complete", limit=500)
+        avl_matches = [
+            m for m in all_complete
+            if "anti vill" in (m.get("away_team_name") or "").lower()
+            or "anti vill" in (m.get("home_team_name") or "").lower()
+        ]
+        for match_meta in avl_matches:
+            avl_is_away = "anti vill" in (match_meta.get("away_team_name") or "").lower()
+            opp_name = (
+                match_meta.get("home_team_name") if avl_is_away
+                else match_meta.get("away_team_name")
+            ) or ""
+            if not opp_name:
+                continue
+            opp_tid = slugify(opp_name)
+            if opp_tid in history_result:
+                continue
+            loaded = repository.get_match(match_meta["match_id"])
+            if not loaded:
+                continue
+            summary = loaded["summary"]
+            our_score = summary.get("our_score")
+            their_score = summary.get("their_score")
+            raw_outcome = summary.get("result") or ""
+            if "win" in raw_outcome or "victory" in raw_outcome:
                 outcome = "win"
-            elif "loss" in raw_outcome:
+            elif "loss" in raw_outcome or "defeat" in raw_outcome:
                 outcome = "loss"
             else:
                 outcome = "tie"
-            for team in teams_out:
-                tid = team["team_id"]
-                if tid in history_result:
-                    continue
-                name_lower = team["name"].lower()
-                if name_lower in away or name_lower in home or away in name_lower or home in name_lower:
-                    history_result[tid] = {
-                        "our_score": our_score,
-                        "their_score": their_score,
-                        "outcome": outcome,
-                    }
+            history_result[opp_tid] = {
+                "our_score": our_score,
+                "their_score": their_score,
+                "outcome": outcome,
+            }
     except Exception as exc:
         logger.info("Division history lookup skipped: %s", exc)
 

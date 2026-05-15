@@ -1812,6 +1812,15 @@ th {
   opacity: 0.5;
 }
 
+.schedule-row.done {
+  opacity: 0.65;
+  background: var(--bg);
+}
+
+.schedule-row.done .schedule-row-opponent {
+  color: var(--muted);
+}
+
 .schedule-row.playoff {
   border-color: var(--gold);
 }

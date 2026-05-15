@@ -61,7 +61,7 @@ export default function App() {
   const [authState, setAuthState] = useState('checking');
   const [authDeniedEmail, setAuthDeniedEmail] = useState('');
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
-  const [screen, setScreen] = useState('setup');
+  const [screen, setScreen] = useState('schedule');
   const [setup, setSetup] = useState({
     week: '5',
     date: today,
@@ -268,6 +268,12 @@ export default function App() {
       setScreen('summary');
     }
   }, [summary.complete, screen]);
+
+  useEffect(() => {
+    if (authState === 'authenticated' && !scheduleData) {
+      getDivision().then(setScheduleData).catch(() => {});
+    }
+  }, [authState]);
 
   const lastFetchedWeek = React.useRef(null);
   useEffect(() => {
@@ -667,6 +673,10 @@ export default function App() {
       </header>
 
       <nav className="tabs" aria-label="Main views">
+        <button className={screen === 'schedule' ? 'active' : ''} onClick={loadScheduleView}>
+          <CalendarDays size={18} />
+          Schedule
+        </button>
         <button className={screen === 'setup' ? 'active' : ''} onClick={() => setScreen('setup')}>
           <ClipboardList size={18} />
           Setup
@@ -686,10 +696,6 @@ export default function App() {
         <button className={screen === 'player' ? 'active' : ''} onClick={() => { setPrevScreen(screen); setSelectedPlayer(null); setScreen('player'); }}>
           <Users size={18} />
           Players
-        </button>
-        <button className={screen === 'schedule' ? 'active' : ''} onClick={loadScheduleView}>
-          <CalendarDays size={18} />
-          Sched
         </button>
       </nav>
 
@@ -2660,7 +2666,7 @@ function ScheduleView({ scheduleData, currentWeek, onStartMatch }) {
   function HABadge({ isHome }) {
     return (
       <span className={`schedule-ha-badge${isHome ? ' home' : ''}`}>
-        {isHome ? 'H' : 'A'}
+        {isHome ? 'Home' : 'Away'}
       </span>
     );
   }
@@ -2706,7 +2712,7 @@ function ScheduleView({ scheduleData, currentWeek, onStartMatch }) {
         return (
           <div
             key={week.week}
-            className={`schedule-row${week.is_bye ? ' bye' : ''}${week.is_playoff ? ' playoff' : ''}`}
+            className={`schedule-row${week.is_bye ? ' bye' : ''}${week.is_playoff ? ' playoff' : ''}${result ? ' done' : ''}`}
           >
             <div className="schedule-week-num">W{week.week}</div>
             <div className="schedule-row-main">
