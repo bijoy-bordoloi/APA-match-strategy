@@ -576,7 +576,7 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
             home = (match.get("home_team_name") or "").lower()
             our_score = match.get("summary", {}).get("our_score")
             their_score = match.get("summary", {}).get("their_score")
-            raw_outcome = match.get("summary", {}).get("result", "")
+            raw_outcome = match.get("summary", {}).get("result") or ""
             if "win" in raw_outcome:
                 outcome = "win"
             elif "loss" in raw_outcome:
@@ -623,12 +623,16 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
             })
             continue
 
-        is_away = "anti vill" in match.get("away", {}).get("name", "").lower()
-        opp_raw = match["home"] if is_away else match["away"]
+        away_info = match.get("away") or {}
+        home_info = match.get("home") or {}
+        is_away = "anti vill" in away_info.get("name", "").lower()
+        opp_raw = home_info if is_away else away_info
         is_home = not is_away
-        opp_name = opp_raw["name"]
+        opp_name = opp_raw.get("name", "")
+        if not opp_name:
+            continue
         opp_team_id = slugify(opp_name)
-        location = match.get("location", {}).get("name", "")
+        location = (match.get("location") or {}).get("name", "")
 
         # Scheduled players from CSV for this week
         scheduled_players: list[str] = []
