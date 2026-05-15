@@ -856,10 +856,22 @@ def _enrich_with_history(match_context: dict[str, Any], repository: MatchReposit
 def _enrich_with_h2h(match_context: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
     enriched = dict(match_context or {})
     h2h = dict(enriched.get("head_to_head", {}))
+
+    # Only surface H2H records against players on the current opponent's roster.
+    # Without this filter the LLM hallucinates matchups against players from past matches.
+    their_roster = enriched.get("their_roster") or {}
+    opponent_ids = {player_id_from_name(name) for name in their_roster}
+
     for player_name in (enriched.get("our_roster") or {}).keys():
         player_id = player_id_from_name(player_name)
         try:
-            h2h[player_name] = repository.get_player_h2h(player_id)
+            records = repository.get_player_h2h(player_id)
+            if opponent_ids:
+                records = [
+                    r for r in records
+                    if str(r.get("SK", "")).replace("H2H#", "") in opponent_ids
+                ]
+            h2h[player_name] = records
         except Exception as exc:  # noqa: BLE001 - h2h is helpful, not route-critical.
             logger.info("Skipping H2H enrichment for %s: %s", player_name, exc)
     enriched["head_to_head"] = h2h
