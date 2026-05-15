@@ -3,6 +3,10 @@ const API_BASE_URL =
 
 const QUEUE_KEY = 'apa-match-write-queue';
 
+function getToken() {
+  return window.localStorage.getItem('apa-gis-token');
+}
+
 export function hasApiBase() {
   return Boolean(API_BASE_URL);
 }
@@ -28,14 +32,61 @@ export async function submitMatch(payload) {
 }
 
 export async function getHistory() {
-  const result = await request('/history', { method: 'GET' });
+  const result = await request('/history?limit=200', { method: 'GET' });
   return result.result || result;
+}
+
+export async function deleteMatch(matchId) {
+  return request('/match', { method: 'DELETE', body: JSON.stringify({ match_id: matchId }) });
 }
 
 export async function getRosters(week) {
   const path = week ? `/rosters?week=${week}` : '/rosters';
   const result = await request(path, { method: 'GET' });
   return result.result || result;
+}
+
+const PROFILE_CACHE_PREFIX = 'apa-profile-';
+const PROFILE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export async function fetchPlayerProfile(name, playerSl, opponentPlayerId) {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const cacheKey = `${PROFILE_CACHE_PREFIX}${slug}`;
+
+  const isOnline = navigator.onLine;
+  let cached = null;
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (raw) cached = JSON.parse(raw);
+  } catch {
+    cached = null;
+  }
+
+  const isStale = cached
+    ? Date.now() - new Date(cached.cached_at).getTime() > PROFILE_CACHE_TTL_MS
+    : true;
+
+  if (!isOnline || !hasApiBase()) {
+    if (cached) return { result: cached, offline: true, stale: isStale };
+    return { result: null, offline: true, stale: true };
+  }
+
+  const params = new URLSearchParams({ name, player_sl: playerSl });
+  if (opponentPlayerId) params.set('opponent_player_id', opponentPlayerId);
+
+  try {
+    const json = await request(`/players/profile?${params}`, { method: 'GET' });
+    const profile = json.result;
+    try {
+      window.localStorage.setItem(cacheKey, JSON.stringify(profile));
+    } catch {
+      // localStorage full — non-fatal
+    }
+    return { result: profile, offline: false, stale: false };
+  } catch (err) {
+    if (cached) return { result: cached, offline: false, stale: isStale, fetchError: err.message };
+    throw err;
+  }
 }
 
 export function enqueueWrite(payload, path = '/result') {
@@ -90,9 +141,19 @@ async function request(path, options) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {}),
       ...(options.headers || {}),
     },
   });
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent('apa-auth-expired'));
+    throw new Error('Unauthorized');
+  }
+  if (response.status === 403) {
+    const j = await response.json().catch(() => ({}));
+    window.dispatchEvent(new CustomEvent('apa-auth-denied', { detail: { email: j?.error_detail?.email || '' } }));
+    throw new Error('Access denied');
+  }
   const json = await response.json().catch(() => ({}));
   if (!response.ok || json.error) {
     throw new Error(json.error || `Request failed with ${response.status}`);

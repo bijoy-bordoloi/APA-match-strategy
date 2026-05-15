@@ -16,6 +16,11 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from typing import Any
 
 from chat_handler import generate_response, generate_suggestion
@@ -163,6 +168,24 @@ def handle_suggest(body: dict[str, Any], repository: MatchRepository) -> dict[st
         else:
             raise ValueError(f"Unknown action: {action!r}")
     else:
+        enriched_context = _enrich_with_history(_enrich_with_h2h(match_context, repository), repository)
+        try:
+            from player_data import get_apr_for_names, apr_band
+            apr_map = get_apr_for_names(list(eligible_ours.keys()))
+            if apr_map:
+                enriched_context["apr_scores"] = {
+                    name: {
+                        "score": round(row["apr"], 1),
+                        "band": apr_band(row["apr"]),
+                        "match_count": row.get("match_count"),
+                    }
+                    for name, row in apr_map.items()
+                    if row.get("apr") is not None
+                }
+                logger.info("APR enriched for suggest: %s", list(enriched_context["apr_scores"].keys()))
+        except Exception as exc:
+            logger.info("APR enrichment skipped for suggest: %s", exc)
+
         suggestion = generate_suggestion(
             action=action,
             eligible_our_players={name: int(sl) for name, sl in eligible_ours.items()},
@@ -170,7 +193,7 @@ def handle_suggest(body: dict[str, Any], repository: MatchRepository) -> dict[st
             total_sl_used=total_sl_used,
             opponent_name=body.get("opponent_name"),
             opponent_sl=body.get("opponent_sl"),
-            match_context=_enrich_with_h2h(match_context, repository),
+            match_context=enriched_context,
         )
 
     return {"suggestion": suggestion, "result": suggestion, "error": None}
@@ -183,6 +206,7 @@ def handle_chat(body: dict[str, Any], repository: MatchRepository) -> dict[str, 
 
     match_context = _context_from_body_or_match(body, repository)
     match_context = _enrich_with_h2h(match_context, repository)
+    match_context = _enrich_with_history(match_context, repository)
     reply = generate_response(message, match_context, body.get("history", []))
     return {"reply": reply, "result": reply, "error": None}
 
@@ -347,8 +371,16 @@ def handle_submit(body: dict[str, Any], repository: MatchRepository) -> dict[str
 
 def handle_history(_body: dict[str, Any], repository: MatchRepository, query: dict[str, str]) -> dict[str, Any]:
     status = query.get("status", "complete")
-    limit = int(query.get("limit", "25"))
+    limit = int(query.get("limit", "200"))
     return {"result": build_history_response(repository, status=status, limit=limit), "error": None}
+
+
+def handle_delete_match(body: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    match_id = str(body.get("match_id") or "")
+    if not match_id:
+        raise ValueError("match_id is required")
+    repository.delete_match(match_id)
+    return {"result": {"deleted": match_id}, "error": None}
 
 
 def handle_rosters(_body: dict[str, Any], _repository: MatchRepository, query: dict[str, str]) -> dict[str, Any]:
@@ -460,6 +492,177 @@ def handle_players(body: dict[str, Any], query: dict[str, str]) -> dict[str, Any
     return {"result": {"player": player, "sessions": sessions}, "error": None}
 
 
+def handle_players_profile(body: dict[str, Any], query: dict[str, str], repository: MatchRepository) -> dict[str, Any]:
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime, timezone
+    from player_data import get_player, get_sessions, get_apr, apr_band
+
+    name = query.get("name") or body.get("name")
+    member_id = query.get("member_id") or body.get("member_id")
+    player_sl = query.get("player_sl") or body.get("player_sl")
+    opponent_player_id = query.get("opponent_player_id") or body.get("opponent_player_id")
+
+    if not name and not member_id:
+        raise ValueError("Provide 'name' or 'member_id'")
+    if player_sl is None:
+        raise ValueError("'player_sl' is required")
+
+    player_sl = int(player_sl)
+
+    # SL peer baseline constants from spec Section 3
+    _PEER_BASELINE = {2: 0.38, 3: 0.42, 4: 0.47, 5: 0.52, 6: 0.57, 7: 0.63}
+    peer_baseline = _PEER_BASELINE.get(player_sl, 0.50)
+
+    futures = {}
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures["player"] = executor.submit(get_player, name=name, member_id=member_id)
+
+        def _fetch_sessions(nm, mid):
+            p = get_player(name=nm, member_id=mid)
+            if not p:
+                return None, [], None
+            sessions = get_sessions(p["member_id"], game="eight_ball")
+            try:
+                apr_row = get_apr(p["member_id"])
+            except Exception:
+                apr_row = None
+            return p, sessions, apr_row
+
+        futures["sessions"] = executor.submit(_fetch_sessions, name, member_id)
+
+        if opponent_player_id:
+            def _fetch_h2h(our_name, opp_id):
+                if not our_name:
+                    return None
+                our_id = player_id_from_name(our_name)
+                h2h_rows = repository.get_player_h2h(our_id)
+                target_sk = f"H2H#{opp_id}"
+                for row in h2h_rows:
+                    if row.get("SK") == target_sk:
+                        return row
+                return None
+            futures["h2h"] = executor.submit(_fetch_h2h, name, opponent_player_id)
+
+        results = {key: f.result() for key, f in futures.items()}
+
+    player = results["player"]
+    if player is None:
+        raise NotFound(f"Player not found: {name or member_id}")
+
+    _player_obj, sessions, apr_row = results["sessions"]
+
+    # Form badge: accumulate recent matches from sessions (most recent first)
+    recent_wins = 0
+    recent_played = 0
+    recent_sessions_out = []
+
+    for s in sessions:
+        won = int(s.get("matches_won") or 0)
+        played = int(s.get("matches_played") or 0)
+        if recent_played < 20:
+            take = min(played, 20 - recent_played)
+            recent_wins += round(won / played * take) if played else 0
+            recent_played += take
+        recent_sessions_out.append({
+            "session_name": s.get("session_name") or s.get("session_id"),
+            "matches_won": won,
+            "matches_played": played,
+            "team_name": s.get("team_name"),
+        })
+
+    # Cap output to 5 sessions
+    recent_sessions_out = recent_sessions_out[:5]
+
+    recent_win_rate = (recent_wins / recent_played) if recent_played else 0.0
+    delta = recent_win_rate - peer_baseline
+    if delta > 0.10:
+        badge = "hot"
+    elif delta < -0.10:
+        badge = "low"
+    else:
+        badge = "mid"
+    reliable = recent_played >= 5
+
+    eb_win_pct = float(player.get("eb_win_pct") or 0)
+    narrative_fallback = (
+        f"{recent_wins} wins in last {recent_played}. "
+        f"Win rate {round(eb_win_pct)}% vs {round(peer_baseline * 100)}% peer avg."
+    )
+    try:
+        from chat_handler import _query_groq
+        prompt = (
+            f"In 1-2 sentences, describe {player.get('display_name', name)}'s recent form for an APA 8-ball team captain. "
+            f"Recent record: {recent_wins}/{recent_played}. Badge: {badge}. "
+            f"Key stats: lifetime win%={round(eb_win_pct)}%, matches={player.get('eb_matches_played', 0)}, "
+            f"DSA={player.get('eb_defensive_shot_avg', 'N/A')}."
+        )
+        messages = [
+            {"role": "system", "content": "You are a concise APA pool league analyst. Return exactly 1-2 sentences."},
+            {"role": "user", "content": prompt},
+        ]
+        narrative = _query_groq(messages, temperature=0.2)
+    except Exception as exc:  # noqa: BLE001 - narrative is helpful, not route-critical
+        logger.info("Groq narrative skipped for profile: %s", exc)
+        narrative = narrative_fallback
+
+    h2h = None
+    if opponent_player_id:
+        h2h_row = results.get("h2h")
+        if h2h_row:
+            h2h = {
+                "opponent_player_id": opponent_player_id,
+                "wins": int(h2h_row.get("wins") or 0),
+                "losses": int(h2h_row.get("losses") or 0),
+            }
+        else:
+            h2h = None  # record exists param but no DynamoDB entry
+
+    apr_payload: dict[str, Any] | None = None
+    if apr_row and apr_row.get("apr") is not None:
+        apr_score = apr_row["apr"]
+        apr_payload = {
+            "score": round(apr_score, 1),
+            "band": apr_band(apr_score),
+            "match_count": apr_row.get("match_count"),
+            "mps": round(apr_row.get("mps") or 0, 1),
+            "ppms": round(apr_row.get("ppms") or 0, 1),
+            "pas": round(apr_row.get("pas") or 0, 1),
+            "oss": round(apr_row.get("oss") or 0, 1),
+            "cs": round(apr_row.get("cs") or 0, 1),
+        }
+
+    result_payload: dict[str, Any] = {
+        "player": {
+            "display_name": player.get("display_name"),
+            "member_id": player.get("member_id"),
+            "skill_level": player_sl,
+            "eb_win_pct": eb_win_pct,
+            "eb_matches_played": player.get("eb_matches_played"),
+            "eb_matches_won": player.get("eb_matches_won"),
+            "eb_rackless": player.get("eb_rackless"),
+            "eb_break_and_runs": player.get("eb_break_and_runs"),
+            "eb_defensive_shot_avg": player.get("eb_defensive_shot_avg"),
+            "avg_opponent_sl": player.get("avg_opponent_sl"),
+            "apr": apr_payload,
+        },
+        "form": {
+            "badge": badge,
+            "recent_win_rate": round(recent_win_rate, 4),
+            "recent_played": recent_played,
+            "peer_baseline": peer_baseline,
+            "delta": round(delta, 4),
+            "reliable": reliable,
+        },
+        "narrative": narrative,
+        "recent_sessions": recent_sessions_out,
+        "cached_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    if opponent_player_id is not None:
+        result_payload["h2h"] = h2h
+
+    return {"result": result_payload, "error": None}
+
+
 def handle_players_search(body: dict[str, Any]) -> dict[str, Any]:
     from player_data import search_chunks, neon_query
 
@@ -497,11 +700,55 @@ def handle_players_search(body: dict[str, Any]) -> dict[str, Any]:
 
 
 
+# Lambda timeout is set to >= 15 s (see engineer-decisions.md STORY-015).
+# tokeninfo call gets 5 s; remaining budget covers route handlers.
+_TOKENINFO_TIMEOUT_SECONDS = 5
+
+
+def _validate_auth(event: dict[str, Any]) -> tuple[str | None, dict[str, Any] | None]:
+    headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
+    auth_header = headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None, _response(401, {"result": None, "error": "Unauthorized"})
+
+    token = auth_header[len("Bearer "):]
+    try:
+        url = f"https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(token, safe='')}"
+        with urllib.request.urlopen(url, timeout=_TOKENINFO_TIMEOUT_SECONDS) as resp:
+            tokeninfo = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None, _response(401, {"result": None, "error": "Unauthorized"})
+
+    expected_client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    if tokeninfo.get("aud") != expected_client_id:
+        return None, _response(401, {"result": None, "error": "Unauthorized"})
+
+    if int(tokeninfo.get("exp", 0)) <= int(time.time()):
+        return None, _response(401, {"result": None, "error": "Unauthorized"})
+
+    from config_loader import load_config
+    allowlist = load_config("authorized-users.json")
+    if not allowlist:
+        logger.warning("authorized-users.json is empty — no one is authorized")
+        return None, _response(401, {"result": None, "error": "Unauthorized"})
+
+    email = tokeninfo.get("email", "")
+    allowed_emails = [u["email"].lower() for u in allowlist]
+    if email.lower() not in allowed_emails:
+        return None, _response(403, {"result": None, "error": "Access denied"})
+
+    return email, None
+
+
 def lambda_handler(event, context):  # noqa: ARG001
     try:
         method, path = _method_and_path(event)
         if method == "OPTIONS":
             return _response(200, {})
+
+        _, auth_error = _validate_auth(event)
+        if auth_error:
+            return auth_error
 
         body = _parse_body(event)
         query = event.get("queryStringParameters") or {}
@@ -520,10 +767,14 @@ def lambda_handler(event, context):  # noqa: ARG001
             result = handle_submit(body, repository)
         elif method == "GET" and path == "/history":
             result = handle_history(body, repository, query)
+        elif method == "DELETE" and path == "/match":
+            result = handle_delete_match(body, repository)
         elif method == "GET" and path == "/rosters":
             result = handle_rosters(body, repository, query)
         elif method in {"GET", "POST"} and path == "/players":
             result = handle_players(body, query)
+        elif method == "GET" and path == "/players/profile":
+            result = handle_players_profile(body, query, repository)
         elif method == "POST" and path == "/players/search":
             result = handle_players_search(body)
         else:
@@ -572,6 +823,16 @@ def _context_from_body_or_match(body: dict[str, Any], repository: MatchRepositor
             raise NotFound(f"Match {body['match_id']} not found")
         return loaded["match_context"]
     return {}
+
+
+def _enrich_with_history(match_context: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
+    enriched = dict(match_context or {})
+    try:
+        from data_access import build_history_context
+        enriched["match_history"] = build_history_context(repository)
+    except Exception as exc:  # noqa: BLE001 - history is helpful, not route-critical.
+        logger.info("Skipping history enrichment: %s", exc)
+    return enriched
 
 
 def _enrich_with_h2h(match_context: dict[str, Any], repository: MatchRepository) -> dict[str, Any]:
@@ -629,7 +890,7 @@ def _response(status: int, body: dict[str, Any]) -> dict[str, Any]:
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
         },
         "body": json.dumps(body, default=str),
     }

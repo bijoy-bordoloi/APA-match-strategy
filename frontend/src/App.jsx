@@ -3,11 +3,17 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
+  Flame,
   Gauge,
   History,
+  Info,
+  LogOut,
   MapPin,
   MessageSquare,
+  Minus,
   Pencil,
   Plus,
   RefreshCw,
@@ -15,15 +21,18 @@ import {
   Save,
   Send,
   Trash2,
+  TrendingDown,
   Trophy,
   Users,
   Wifi,
   WifiOff,
   X,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  deleteMatch,
   enqueueWrite,
+  fetchPlayerProfile,
   flushQueue,
   getHistory,
   getRosters,
@@ -45,6 +54,9 @@ const MAX_TURNS = 5;
 
 export default function App() {
   const today = new Date().toISOString().slice(0, 10);
+  const [authState, setAuthState] = useState('checking');
+  const [authDeniedEmail, setAuthDeniedEmail] = useState('');
+  const [showAuthOverlay, setShowAuthOverlay] = useState(false);
   const [screen, setScreen] = useState('setup');
   const [setup, setSetup] = useState({
     week: '5',
@@ -76,7 +88,127 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [queueCount, setQueueCount] = useState(loadQueue().length);
   const [online, setOnline] = useState(navigator.onLine);
+  const [profileSheet, setProfileSheet] = useState(null);
   const matchStarted = matchStatus === 'active' || matchStatus === 'editing';
+
+  // --- Auth: boot check (synchronous localStorage read, no network) ---
+  useEffect(() => {
+    const token = localStorage.getItem('apa-gis-token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 > Date.now() + 60_000) {
+          setAuthState('authenticated');
+          return;
+        }
+      } catch { /* malformed token — fall through */ }
+    }
+    localStorage.removeItem('apa-gis-token');
+    setAuthState('unauthenticated');
+  }, []);
+
+  // --- Auth: GIS initialization ---
+  useEffect(() => {
+    if (authState === 'authenticated') return;
+    const initGis = () => {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: handleGisCredential,
+        auto_select: true, // enables One Tap silent re-auth
+      });
+      window.google.accounts.id.renderButton(
+        document.getElementById('gis-button-target'),
+        { type: 'standard', shape: 'rectangular', theme: 'outline',
+          text: 'sign_in_with', size: 'large', width: 312, logo_alignment: 'left' },
+      );
+      if (authState === 'unauthenticated') {
+        window.google.accounts.id.prompt();
+      }
+    };
+    if (window.google?.accounts?.id) {
+      initGis();
+    } else {
+      const t = setTimeout(initGis, 500);
+      return () => clearTimeout(t);
+    }
+  }, [authState]);
+
+  // --- Auth: 401/403 event listeners from api.js ---
+  useEffect(() => {
+    const onExpired = () => {
+      localStorage.removeItem('apa-gis-token');
+      // Option A (REVIEW-002 Condition 1): preserve in-memory match state during
+      // a mid-match 401 by using a separate overlay flag instead of changing authState.
+      if (matchId !== null) {
+        setShowAuthOverlay(true);
+      } else {
+        setAuthState('unauthenticated');
+      }
+    };
+    const onDenied = (e) => {
+      localStorage.removeItem('apa-gis-token');
+      setAuthDeniedEmail(e.detail?.email || '');
+      setAuthState('access_denied');
+    };
+    window.addEventListener('apa-auth-expired', onExpired);
+    window.addEventListener('apa-auth-denied', onDenied);
+    return () => {
+      window.removeEventListener('apa-auth-expired', onExpired);
+      window.removeEventListener('apa-auth-denied', onDenied);
+    };
+  }, [matchId]);
+
+  async function handleGisCredential(response) {
+    const token = response.credential;
+    let email = '';
+    try { email = JSON.parse(atob(token.split('.')[1])).email; } catch {}
+
+    localStorage.setItem('apa-gis-token', token);
+    setAuthState('checking');
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/rosters`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        setShowAuthOverlay(false);
+        setAuthState('authenticated');
+      } else if (res.status === 403) {
+        localStorage.removeItem('apa-gis-token');
+        setAuthDeniedEmail(email);
+        setAuthState('access_denied');
+      } else {
+        localStorage.removeItem('apa-gis-token');
+        setAuthState('unauthenticated');
+      }
+    } catch {
+      localStorage.removeItem('apa-gis-token');
+      setAuthState('unauthenticated');
+    }
+  }
+
+  function handleLogout() {
+    if (navigator.onLine && hasApiBase()) {
+      flushQueue().finally(clearSession);
+    } else {
+      clearSession();
+    }
+  }
+
+  function clearSession() {
+    const token = localStorage.getItem('apa-gis-token');
+    if (token && window.google?.accounts?.id) {
+      try {
+        const email = JSON.parse(atob(token.split('.')[1])).email;
+        window.google.accounts.id.revoke(email, () => {});
+      } catch { /* non-fatal */ }
+    }
+    localStorage.removeItem('apa-gis-token');
+    localStorage.removeItem('apa-match-write-queue');
+    window.location.reload();
+  }
 
   const activeOurPlayers = useMemo(
     () => ourPlayers.filter((player) => player.scheduled && player.name.trim()),
@@ -132,7 +264,13 @@ export default function App() {
 
   const lastFetchedWeek = React.useRef(null);
   useEffect(() => {
-    if (!hasApiBase() || setup.week === lastFetchedWeek.current) return;
+    if (authState === 'authenticated') {
+      lastFetchedWeek.current = null;
+    }
+  }, [authState]);
+  useEffect(() => {
+    if (!hasApiBase() || authState !== 'authenticated') return;
+    if (setup.week === lastFetchedWeek.current) return;
     lastFetchedWeek.current = setup.week;
     getRosters(setup.week).then((data) => {
       if (data.opponent_teams?.length) {
@@ -157,7 +295,7 @@ export default function App() {
         }));
       }
     }).catch(() => {});
-  }, [setup.week]);
+  }, [setup.week, authState]);
 
   function updateSetup(key, value) {
     setSetup((current) => ({ ...current, [key]: value }));
@@ -436,8 +574,32 @@ export default function App() {
     setScreen('summary');
   }
 
+  async function deleteFromHistory(matchId) {
+    if (!window.confirm('Delete this match? This cannot be undone.')) return;
+    try {
+      await deleteMatch(matchId);
+      setHistoryData((prev) => ({
+        ...prev,
+        matches: prev.matches.filter((m) => m.match_id !== matchId),
+      }));
+    } catch (error) {
+      setNotice(`Could not delete match. ${error.message}`);
+    }
+  }
+
+  if (authState === 'checking') return null;
+  if (authState !== 'authenticated') {
+    return <SignInScreen deniedEmail={authState === 'access_denied' ? authDeniedEmail : ''} />;
+  }
+
   return (
-    <div className="app-shell">
+    <>
+      {showAuthOverlay && (
+        <div className="auth-overlay">
+          <SignInScreen deniedEmail="" />
+        </div>
+      )}
+      <div className="app-shell">
       <header className="topbar">
         <div>
           <p className="eyebrow">Anti-Villain League</p>
@@ -452,6 +614,9 @@ export default function App() {
             <Save size={16} />
             {queueCount} queued
           </span>
+          <button className="ghost-button signout-btn" onClick={handleLogout} aria-label="Sign out">
+            <LogOut size={16} /> Sign out
+          </button>
         </div>
       </header>
 
@@ -523,6 +688,8 @@ export default function App() {
           saveTurn={saveTurn}
           submitChat={submitChat}
           cancelMatch={cancelMatch}
+          profileSheet={profileSheet}
+          setProfileSheet={setProfileSheet}
         />
       )}
 
@@ -550,9 +717,12 @@ export default function App() {
           expandedHistory={expandedHistory}
           setExpandedHistory={setExpandedHistory}
           onReEdit={reEditMatch}
+          onStartNew={startNewMatch}
+          onDelete={deleteFromHistory}
         />
       )}
     </div>
+  </>
   );
 }
 
@@ -650,13 +820,35 @@ function SetupView({
           <p className="eyebrow">Ready roster SL</p>
           <strong>{sumRoster(ourPlayers.filter((player) => player.scheduled))} / {MAX_SL}</strong>
         </div>
-        <button className="primary-action" onClick={startMatch} disabled={busy === 'match' || matchStarted}>
-          <Check size={20} />
-          {matchStarted ? 'Match In Progress' : busy === 'match' ? 'Starting' : 'Start Match'}
-        </button>
+        {(() => {
+          const scheduledCount = ourPlayers.filter((p) => p.scheduled && p.name.trim()).length;
+          return (
+            <button className="primary-action" onClick={startMatch} disabled={busy === 'match' || matchStarted || scheduledCount < 4}>
+              <Check size={20} />
+              {matchStarted ? 'Match In Progress' : busy === 'match' ? 'Starting' : 'Start Match'}
+            </button>
+          );
+        })()}
       </section>
     </main>
   );
+}
+
+const FORM_ICON_CONFIGS = {
+  hot: { color: '#b06a00', Icon: Flame },
+  mid: { color: 'var(--green)', Icon: Minus },
+  low: { color: 'var(--red)', Icon: TrendingDown },
+};
+
+function getFormBadgeFromCache(name) {
+  try {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const raw = window.localStorage.getItem(`apa-profile-${slug}`);
+    if (!raw) return null;
+    return JSON.parse(raw)?.form ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function LiveView({
@@ -686,7 +878,316 @@ function LiveView({
   saveTurn,
   submitChat,
   cancelMatch,
+  profileSheet,
+  setProfileSheet,
 }) {
+  const canvasRef = useRef(null);
+  const svgRef = useRef(null);
+  const midColRef = useRef(null);
+  const inlineRef = useRef(null);
+  const wheelRef = useRef(null);
+  const wheelTimer = useRef(null);
+  const longPressTimer = useRef(null);
+  const ITEM_H = 24;
+
+  function openProfile(name, sl, opponentPlayerId) {
+    setProfileSheet({ name, sl, opponentPlayerId, loading: true, data: null, offline: false, stale: false });
+    fetchPlayerProfile(name, sl, opponentPlayerId)
+      .then(({ result, offline, stale }) => {
+        setProfileSheet((current) =>
+          current?.name === name
+            ? { ...current, loading: false, data: result, offline, stale }
+            : current
+        );
+      })
+      .catch(() => {
+        setProfileSheet((current) =>
+          current?.name === name
+            ? { ...current, loading: false, data: null, offline: !navigator.onLine, stale: true }
+            : current
+        );
+      });
+  }
+
+  function makeLongPressHandlers(name, sl, opponentPlayerId) {
+    return {
+      onPointerDown: () => {
+        longPressTimer.current = setTimeout(() => openProfile(name, sl, opponentPlayerId), 500);
+      },
+      onPointerUp: () => clearTimeout(longPressTimer.current),
+      onPointerLeave: () => clearTimeout(longPressTimer.current),
+      onPointerCancel: () => clearTimeout(longPressTimer.current),
+    };
+  }
+
+  function abbrev(name) {
+    const parts = name.split(' ');
+    return parts.length >= 2 && name.length > 14
+      ? parts[0][0] + '. ' + parts.slice(1).join(' ')
+      : name;
+  }
+
+  // Reset wheel position after each turn is recorded
+  useEffect(() => {
+    if (wheelRef.current) {
+      wheelRef.current.scrollTop = 2 * ITEM_H;
+    }
+  }, [turns.length]);
+
+  // Draw SVG arrows + position score wheel after every render
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const svg = svgRef.current;
+    const midCol = midColRef.current;
+    const inline = inlineRef.current;
+    if (!canvas || !svg) return;
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const canvasR = canvas.getBoundingClientRect();
+    const W = canvasR.width, H = canvasR.height;
+    const gapCX = midCol
+      ? midCol.getBoundingClientRect().left + midCol.getBoundingClientRect().width / 2 - canvasR.left
+      : W / 2;
+
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = '';
+
+    function mkEl(tag, attrs) {
+      const el = document.createElementNS(SVG_NS, tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      return el;
+    }
+
+    const defs = mkEl('defs', {});
+    for (const [id, color] of [['ah-win', '#176b4d'], ['ah-loss', '#b23a33'], ['ah-pend', '#b9851d']]) {
+      const m = mkEl('marker', { id, markerWidth: '9', markerHeight: '7', refX: '8', refY: '3.5', orient: 'auto' });
+      m.appendChild(mkEl('polygon', { points: '0 0,9 3.5,0 7', fill: color }));
+      defs.appendChild(m);
+    }
+    svg.appendChild(defs);
+
+    function anchorByIndex(colClass, index, side) {
+      const col = canvas.querySelector(`.${colClass}`);
+      if (!col) return null;
+      const row = col.querySelectorAll('.p-row')[index];
+      if (!row) return null;
+      const r = row.getBoundingClientRect();
+      return {
+        x: side === 'right' ? r.right - canvasR.left : r.left - canvasR.left,
+        y: r.top + r.height / 2 - canvasR.top,
+      };
+    }
+
+    function anchorByClass(colClass, cls, side) {
+      const col = canvas.querySelector(`.${colClass}`);
+      if (!col) return null;
+      const row = col.querySelector(`.${cls}`);
+      if (!row) return null;
+      const r = row.getBoundingClientRect();
+      return {
+        x: side === 'right' ? r.right - canvasR.left : r.left - canvasR.left,
+        y: r.top + r.height / 2 - canvasR.top,
+      };
+    }
+
+    function drawArrow({ x1, y1, x2, y2, color, dashed, markerId, badge }) {
+      const g = mkEl('g', {});
+      g.appendChild(mkEl('line', {
+        x1, y1, x2, y2, stroke: color,
+        'stroke-width': dashed ? 1.5 : 2,
+        ...(dashed ? { 'stroke-dasharray': '5 3' } : {}),
+        'marker-end': `url(#${markerId})`,
+      }));
+      if (badge) {
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+        const fg = badge.win ? '#176b4d' : '#b23a33';
+        const bg = badge.win ? '#dceee5' : '#f2dddd';
+        g.appendChild(mkEl('rect', { x: mx - 15, y: my - 7.5, width: 30, height: 15, rx: 8, fill: bg, stroke: fg, 'stroke-width': 1 }));
+        const txt = mkEl('text', { x: mx, y: my + 4.5, 'text-anchor': 'middle', 'font-family': 'Inter,sans-serif', 'font-size': '8', 'font-weight': '900', fill: fg });
+        txt.textContent = badge.label;
+        g.appendChild(txt);
+      }
+      svg.appendChild(g);
+    }
+
+    turns.forEach((t, i) => {
+      const from = anchorByIndex('our-col', i, 'right');
+      const to = anchorByIndex('their-col', i, 'left');
+      if (!from || !to) return;
+      const win = t.our_score >= 2;
+      drawArrow({ x1: from.x, y1: from.y, x2: to.x, y2: to.y,
+        color: win ? '#176b4d' : '#b23a33',
+        markerId: win ? 'ah-win' : 'ah-loss',
+        badge: { label: `${t.our_score}-${t.their_score}`, win } });
+    });
+
+    if (selectedOur) {
+      const from = anchorByClass('our-col', 'sel-ours', 'right');
+      if (from) {
+        if (selectedTheir) {
+          const to = anchorByClass('their-col', 'sel-theirs', 'left');
+          if (to) {
+            const midY = (from.y + to.y) / 2;
+            svg.appendChild(mkEl('line', { x1: from.x, y1: from.y, x2: gapCX, y2: midY, stroke: '#b9851d', 'stroke-width': 1.5, 'stroke-dasharray': '5 3' }));
+            svg.appendChild(mkEl('line', { x1: gapCX, y1: midY, x2: to.x, y2: to.y, stroke: '#b9851d', 'stroke-width': 1.5, 'stroke-dasharray': '5 3', 'marker-end': 'url(#ah-pend)' }));
+          }
+        } else {
+          svg.appendChild(mkEl('line', { x1: from.x, y1: from.y, x2: gapCX, y2: from.y, stroke: '#b9851d', 'stroke-width': 1.5, 'stroke-dasharray': '5 3' }));
+        }
+      }
+    }
+
+    if (inline && midCol) {
+      if (!selectedOur) { inline.style.display = 'none'; return; }
+      const ourRow = canvas.querySelector('.our-col .sel-ours');
+      if (!ourRow) { inline.style.display = 'none'; return; }
+      const midR = midCol.getBoundingClientRect();
+      const rowR = ourRow.getBoundingClientRect();
+      let arrowY = rowR.top + rowR.height / 2 - canvasR.top;
+      if (selectedTheir) {
+        const theirRow = canvas.querySelector('.their-col .sel-theirs');
+        if (theirRow) {
+          const theirR = theirRow.getBoundingClientRect();
+          arrowY = (rowR.top + rowR.height / 2 + theirR.top + theirR.height / 2) / 2 - canvasR.top;
+        }
+      }
+      const wheelH = 72, wheelW = 44;
+      const topY = Math.max(38, Math.min(H - wheelH - 4, arrowY - wheelH / 2));
+      inline.style.top = topY + 'px';
+      inline.style.left = ((midR.width - wheelW) / 2) + 'px';
+      inline.style.display = 'block';
+    }
+  });
+
+  function onWheelScroll() {
+    clearTimeout(wheelTimer.current);
+    wheelTimer.current = setTimeout(() => {
+      if (!wheelRef.current) return;
+      const idx = Math.max(0, Math.min(Math.round(wheelRef.current.scrollTop / ITEM_H), SCORE_OPTIONS.length - 1));
+      setSelectedScore(SCORE_OPTIONS[idx]);
+    }, 80);
+  }
+
+  function rosterRows(side) {
+    const roster = side === 'our' ? ourRoster : theirRoster;
+    const eligible = side === 'our' ? ourEligible : theirEligible;
+    const sel = side === 'our' ? selectedOur : selectedTheir;
+    const onSelect = side === 'our' ? setSelectedOur : setSelectedTheir;
+    const selClass = side === 'our' ? 'sel-ours' : 'sel-theirs';
+    const counts = getPlayCounts(turns, side);
+    const dpUsed = turns.some((t) => side === 'our' ? t.is_our_dp : t.is_their_dp);
+    const nextTurn = turns.length + 1;
+    // Current opponent selection gives context for H2H when opening own player profile
+    const opponentSelected = side === 'our' ? selectedTheir : selectedOur;
+    const opponentRoster = side === 'our' ? theirRoster : ourRoster;
+    const rows = [];
+
+    function profileBtn(name, sl) {
+      const form = getFormBadgeFromCache(name);
+      const cfg = form ? FORM_ICON_CONFIGS[form.badge] : null;
+      const Icon = cfg ? cfg.Icon : Info;
+      return (
+        <button
+          key={`info-${name}`}
+          className="p-row-info"
+          aria-label={`View ${name} profile`}
+          title={cfg ? `${form.badge.toUpperCase()} — View ${name} profile` : `View ${name} profile`}
+          style={cfg ? { color: cfg.color } : undefined}
+          onPointerDown={(e) => { e.stopPropagation(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const oppId = opponentSelected
+              ? opponentSelected.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+              : undefined;
+            openProfile(name, sl, oppId);
+          }}
+        >
+          <Icon size={14} />
+        </button>
+      );
+    }
+
+    // Completed turns in match order — use div (disabled button blocks pointer events)
+    turns.forEach((t, i) => {
+      const name = side === 'our' ? t.our_player_name : t.their_player_name;
+      const sl = side === 'our' ? t.our_sl_snapshot : t.their_sl_snapshot;
+      const win = side === 'our' ? t.our_score >= 2 : t.their_score >= 2;
+      rows.push(
+        <div key={`played-${i}`} className="p-row played" data-name={name}
+          {...makeLongPressHandlers(name, sl)}>
+          <span className={`t-badge ${win ? 'win' : 'loss'}`}>T{i + 1}</span>
+          <span className="p-name dim">{abbrev(name)}</span>
+          <span className="pl-sl">SL {sl}</span>
+          {profileBtn(name, sl)}
+        </div>,
+      );
+    });
+
+    // In-progress (currently selected)
+    if (sel && turns.length < MAX_TURNS) {
+      const sl = roster[sel] ?? 0;
+      rows.push(
+        <button key="inprogress" className={`p-row ${selClass}`} data-name={sel}
+          onClick={() => onSelect('')}
+          {...makeLongPressHandlers(sel, sl)}>
+          <span className="t-badge live">T{nextTurn}</span>
+          <span className="p-name">{abbrev(sel)}</span>
+          <span className="pl-sl">SL {sl || '?'}</span>
+          {profileBtn(sel, sl)}
+        </button>,
+      );
+    }
+
+    // Eligible and ineligible remaining
+    Object.keys(roster).forEach((name) => {
+      if (name === sel) return;
+      const count = counts[name] || 0;
+      if (count >= 2) return;
+      if (count === 1 && dpUsed) return;
+      const sl = roster[name];
+      const oppId = opponentSelected
+        ? opponentSelected.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+        : undefined;
+      if (count === 1) {
+        rows.push(
+          <button key={`dp-${name}`} className="p-row" data-name={name}
+            onClick={() => onSelect(name)}
+            {...makeLongPressHandlers(name, sl, oppId)}>
+            <span className="t-badge dp">DP</span>
+            <span className="p-name">{abbrev(name)}</span>
+            <span className="pl-sl">SL {sl}</span>
+            {profileBtn(name, sl)}
+          </button>,
+        );
+        return;
+      }
+      if (eligible[name]) {
+        rows.push(
+          <button key={`elig-${name}`} className="p-row" data-name={name}
+            onClick={() => onSelect(name)}
+            {...makeLongPressHandlers(name, sl, oppId)}>
+            <span className="t-badge" />
+            <span className="p-name">{abbrev(name)}</span>
+            <span className="pl-sl">SL {sl}</span>
+            {profileBtn(name, sl)}
+          </button>,
+        );
+      } else {
+        rows.push(
+          <button key={`inelig-${name}`} className="p-row ineligible" data-name={name}
+            {...makeLongPressHandlers(name, sl, oppId)}>
+            <span className="t-badge" />
+            <span className="p-name dim">{abbrev(name)}</span>
+            <span className="pl-sl">SL {sl}</span>
+            {profileBtn(name, sl)}
+          </button>,
+        );
+      }
+    });
+
+    return rows;
+  }
+
   return (
     <main className="match-grid">
       <section className="live-stack">
@@ -697,69 +1198,77 @@ function LiveView({
           </div>
         )}
 
-        <section className="tool-surface">
-          <div className="section-title split-title">
-            <span>
-              <Users size={20} />
-              <h2>Our Roster</h2>
-            </span>
-            <button className="ghost-button" onClick={askForSuggestion} disabled={busy === 'suggest' || summary.complete}>
-              <Bot size={18} />
-              {busy === 'suggest' ? 'Asking' : 'Suggest'}
-            </button>
+        <div className="matchup-canvas" ref={canvasRef}>
+          <div className="matchup-col our-col">
+            <div className="col-head">AVL</div>
+            {rosterRows('our')}
           </div>
-          {suggestion && (
-            <button className="suggestion-chip" onClick={() => setSelectedOur(suggestion)} disabled={!ourEligible[suggestion]}>
+          <div className="mid-col" ref={midColRef}>
+            <div className="score-inline" ref={inlineRef} style={{ display: 'none' }}>
+              <div className="score-inline-band" />
+              <div className="score-inline-scroller" ref={wheelRef} onScroll={onWheelScroll}>
+                <div style={{ height: ITEM_H, flexShrink: 0 }} />
+                {SCORE_OPTIONS.map((s, i) => {
+                  const active = selectedScore?.label === s.label;
+                  return (
+                    <div key={s.label}
+                      className={`score-inline-item${active ? ` active ${s.our >= 2 ? 'win' : 'loss'}` : ''}`}
+                      onClick={() => {
+                        wheelRef.current?.scrollTo({ top: i * ITEM_H, behavior: 'smooth' });
+                        setSelectedScore(s);
+                      }}
+                    >
+                      {s.label}
+                    </div>
+                  );
+                })}
+                <div style={{ height: ITEM_H, flexShrink: 0 }} />
+              </div>
+            </div>
+          </div>
+          <div className="matchup-col their-col">
+            <div className="col-head">Opp</div>
+            {rosterRows('their')}
+          </div>
+          <svg ref={svgRef} className="arrow-svg" />
+        </div>
+
+        <div className="live-action-row">
+          <button className="primary-action" onClick={saveTurn}
+            disabled={!selectedOur || !selectedTheir || !selectedScore || summary.complete}>
+            <Save size={20} />
+            Record Turn {Math.min(turns.length + 1, MAX_TURNS)}
+          </button>
+          <button className="ghost-button" onClick={askForSuggestion}
+            disabled={busy === 'suggest' || summary.complete}>
+            <Bot size={18} />
+            {busy === 'suggest' ? 'Asking' : 'Suggest'}
+          </button>
+        </div>
+
+        {suggestion && (
+          <div className="suggestion-chip-wrap">
+            <button className="suggestion-chip" onClick={() => setSelectedOur(suggestion)}
+              disabled={!ourEligible[suggestion]}>
               <Bot size={18} />
               {suggestion}
             </button>
-          )}
-          <PlayerPicker
-            roster={ourRoster}
-            eligible={ourEligible}
-            turns={turns}
-            side="our"
-            selected={selectedOur}
-            onSelect={setSelectedOur}
-          />
-        </section>
-
-        <section className="tool-surface">
-          <div className="section-title">
-            <Users size={20} />
-            <h2>Opponent</h2>
+            <button
+              className="suggestion-chip-info"
+              aria-label={`View ${suggestion} profile`}
+              title={`View ${suggestion} profile`}
+              onClick={() => {
+                const sl = ourRoster[suggestion] ?? 0;
+                const oppId = selectedTheir
+                  ? selectedTheir.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+                  : undefined;
+                openProfile(suggestion, sl, oppId);
+              }}
+            >
+              <Info size={16} />
+            </button>
           </div>
-          <PlayerPicker
-            roster={theirRoster}
-            eligible={theirEligible}
-            turns={turns}
-            side="their"
-            selected={selectedTheir}
-            onSelect={setSelectedTheir}
-          />
-        </section>
-
-        <section className="tool-surface">
-          <div className="section-title">
-            <Trophy size={20} />
-            <h2>Score</h2>
-          </div>
-          <div className="score-grid">
-            {SCORE_OPTIONS.map((score) => (
-              <button
-                key={score.label}
-                className={selectedScore?.label === score.label ? 'score-button active' : 'score-button'}
-                onClick={() => setSelectedScore(score)}
-              >
-                {score.label}
-              </button>
-            ))}
-          </div>
-          <button className="primary-action full-width" onClick={saveTurn} disabled={summary.complete}>
-            <Save size={20} />
-            Record Turn
-          </button>
-        </section>
+        )}
 
         <div className="cancel-band">
           <button className="ghost-button danger" onClick={cancelMatch}>
@@ -779,6 +1288,13 @@ function LiveView({
         busy={busy}
         context={context}
       />
+
+      {profileSheet && (
+        <PlayerProfileSheet
+          sheet={profileSheet}
+          onClose={() => setProfileSheet(null)}
+        />
+      )}
     </main>
   );
 }
@@ -853,6 +1369,153 @@ function ChatPanel({ open, setOpen, messages, input, setInput, submitChat, busy 
         </>
       )}
     </aside>
+  );
+}
+
+function FormBadge({ badge, reliable }) {
+  const configs = {
+    hot: { label: 'HOT', bg: '#fff0c2', color: '#7a5200', Icon: Flame },
+    mid: { label: 'MID', bg: 'var(--green-soft)', color: 'var(--green)', Icon: Minus },
+    low: { label: 'LOW', bg: 'var(--red-soft)', color: 'var(--red)', Icon: TrendingDown },
+  };
+  const cfg = configs[badge] || configs.mid;
+  const { Icon } = cfg;
+  return (
+    <span
+      className="form-badge"
+      style={{
+        background: cfg.bg,
+        color: cfg.color,
+        opacity: reliable === false ? 0.6 : 1,
+      }}
+      title={reliable === false ? 'Based on fewer than 5 recent matches' : undefined}
+    >
+      <Icon size={14} />
+      {cfg.label}
+    </span>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="profile-skeleton">
+      <div className="skel-line wide" />
+      <div className="skel-line medium" />
+      <div className="skel-row">
+        <div className="skel-block" />
+        <div className="skel-block" />
+        <div className="skel-block" />
+      </div>
+      <div className="skel-line medium" />
+      <div className="skel-line short" />
+      <div className="skel-line short" />
+    </div>
+  );
+}
+
+function PlayerProfileSheet({ sheet, onClose }) {
+  const { name, sl, loading, data, offline, stale } = sheet;
+
+  function relativeDate(isoStr) {
+    if (!isoStr) return '';
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'today';
+    if (days === 1) return 'yesterday';
+    return `${days} days ago`;
+  }
+
+  return (
+    <>
+      <div className="profile-overlay" onClick={onClose} />
+      <div className="profile-sheet" role="dialog" aria-modal="true" aria-label={`${name} profile`}>
+        <div className="profile-drag-handle" />
+
+        {(offline || stale) && data && (
+          <div className="profile-offline-banner">
+            Offline — data from {relativeDate(data.cached_at)}
+          </div>
+        )}
+        {offline && !data && (
+          <div className="profile-offline-banner">
+            <WifiOff size={14} />
+            No cached data available. Connect to the internet and try again.
+          </div>
+        )}
+
+        <div className="profile-zone-a">
+          <div className="profile-identity">
+            {data?.form && (
+              <FormBadge badge={data.form.badge} reliable={data.form.reliable} />
+            )}
+            <span className="profile-name">{name}</span>
+            <span className="pl-sl">SL {sl}</span>
+            <button className="profile-close" onClick={onClose} aria-label="Close profile">
+              <X size={18} />
+            </button>
+          </div>
+          {loading && !data && <ProfileSkeleton />}
+          {data?.narrative && (
+            <p className="profile-narrative">{data.narrative}</p>
+          )}
+        </div>
+
+        {data && (
+          <>
+            <div className="profile-divider" />
+            <div className="profile-zone-b">
+              <div className="profile-metric">
+                <strong>{data.player.eb_win_pct != null ? `${Math.round(data.player.eb_win_pct)}%` : '—'}</strong>
+                <span>Win %</span>
+              </div>
+              <div className="profile-metric">
+                <strong>{data.player.eb_matches_played ?? '—'}</strong>
+                <span>Matches</span>
+              </div>
+              <div className="profile-metric">
+                <strong>{data.player.avg_opponent_sl != null ? Number(data.player.avg_opponent_sl).toFixed(1) : '—'}</strong>
+                <span>Avg Opp SL</span>
+              </div>
+            </div>
+
+            {sheet.opponentPlayerId !== undefined && (
+              <>
+                <div className="profile-divider" />
+                <div className="profile-zone-c">
+                  <span className="profile-section-label">H2H vs opponent</span>
+                  {data.h2h ? (
+                    <span className="profile-h2h">
+                      <span className="h2h-dot" />
+                      {data.h2h.wins}W – {data.h2h.losses}L
+                    </span>
+                  ) : (
+                    <span className="profile-h2h-none">No history vs this player</span>
+                  )}
+                </div>
+              </>
+            )}
+
+            {data.recent_sessions?.length > 0 && (
+              <>
+                <div className="profile-divider" />
+                <div className="profile-zone-d">
+                  <span className="profile-section-label">Recent Sessions</span>
+                  {data.recent_sessions.map((s, i) => (
+                    <div key={i} className="profile-session-row">
+                      <span className="session-name">{s.session_name || '—'}</span>
+                      <span className="session-record">
+                        {s.matches_won}W–{s.matches_played - s.matches_won}L
+                      </span>
+                      {s.team_name && <span className="session-team">{s.team_name}</span>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -980,64 +1643,133 @@ function SummaryView({
   );
 }
 
-function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit }) {
+const HISTORY_PAGE_SIZE = 5;
+
+function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete }) {
+  const [divisionFilter, setDivisionFilter] = useState('');
+  const [teamFilter, setTeamFilter] = useState('');
+  const [playerFilter, setPlayerFilter] = useState('');
+  const [page, setPage] = useState(0);
+
+  const matches = historyData.matches;
+
+  const uniqueDivisions = [...new Set(matches.map((m) => m.division_name).filter(Boolean))].sort();
+  const uniqueTeams = [...new Set(
+    matches.flatMap((m) => [m.our_team_name, m.opponent_team_name]).filter(Boolean)
+  )].sort();
+  const uniquePlayers = [...new Set(
+    matches.flatMap((m) => {
+      const sc = m.source_context || {};
+      const turns = Array.isArray(m.turns) && m.turns.length > 0 ? m.turns : (sc.turns || []);
+      return turns.flatMap((t) => [t.our_player_name, t.their_player_name]).filter(Boolean);
+    })
+  )].sort();
+
+  function resetPage() { setPage(0); setExpandedHistory(null); }
+
+  const filteredMatches = matches.filter((m) => {
+    if (divisionFilter && m.division_name !== divisionFilter) return false;
+    if (teamFilter) {
+      const q = teamFilter.toLowerCase();
+      const matchesOur = (m.our_team_name || '').toLowerCase().includes(q);
+      const matchesTheir = (m.opponent_team_name || '').toLowerCase().includes(q);
+      if (!matchesOur && !matchesTheir) return false;
+    }
+    if (playerFilter) {
+      const sc = m.source_context || {};
+      const turns = Array.isArray(m.turns) && m.turns.length > 0 ? m.turns : (sc.turns || []);
+      const played = turns.some((t) => t.our_player_name === playerFilter || t.their_player_name === playerFilter);
+      if (!played) return false;
+    }
+    return true;
+  });
+
+  const totalPages = Math.ceil(filteredMatches.length / HISTORY_PAGE_SIZE);
+  const pagedMatches = filteredMatches.slice(page * HISTORY_PAGE_SIZE, (page + 1) * HISTORY_PAGE_SIZE);
+
+  const hasFilters = divisionFilter || teamFilter || playerFilter;
+
   return (
     <main className="history-layout">
       <section className="tool-surface">
         <div className="section-title split-title">
           <span>
             <History size={20} />
-            <h2>Past Matches</h2>
+            <h2>Season History</h2>
           </span>
           {busy === 'history' && <RefreshCw className="spin" size={18} />}
         </div>
-        <div className="history-list">
-          {historyData.matches.map((match) => {
-            const ourWins = match.summary?.our_wins ?? 0;
-            const theirWins = match.summary?.their_wins ?? 0;
-            const won = ourWins > theirWins;
-            const ourScore = match.summary?.our_score;
-            const theirScore = match.summary?.their_score;
-            const scoreStr = ourScore != null && theirScore != null ? `${ourScore}-${theirScore}` : '—';
-            return (
-              <article key={match.match_id} className="history-item">
-                <button onClick={() => setExpandedHistory(expandedHistory === match.match_id ? null : match.match_id)}>
-                  <span>
-                    <strong>{match.date || 'No date'}</strong>
-                    <span className="history-opponent">{match.opponent_team_name || match.away_team_id || 'Unknown'}</span>
-                  </span>
-                  <span className="history-result">
-                    <strong>{scoreStr}</strong>
-                    <span className={`result-badge${won ? '' : ' loss'}`}>{won ? 'W' : 'L'}</span>
-                  </span>
-                </button>
-                {expandedHistory === match.match_id && (
-                  <div className="history-turns">
-                    {match.turns.map((turn) => {
-                      const turnWon = Number(turn.our_score) >= 2;
-                      return (
-                        <div key={turn.turn_num} className="turn-row">
-                          <span className="turn-players">
-                            {turn.turn_num}. {turn.our_player_name} vs {turn.their_player_name}
-                          </span>
-                          <span className={`turn-score${turnWon ? ' win' : ''}`}>
-                            {turn.our_score}-{turn.their_score}
-                          </span>
-                        </div>
-                      );
-                    })}
-                    <button className="ghost-button" onClick={() => onReEdit(match)}>
-                      <Pencil size={18} />
-                      Edit
-                    </button>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-          {!historyData.matches.length && busy !== 'history' && <p className="empty-state">No completed matches found.</p>}
+
+        <div className="history-filters">
+          {uniqueDivisions.length > 1 && (
+            <div className="history-filter-row">
+              <label className="filter-label">Division</label>
+              <select value={divisionFilter} onChange={(e) => { setDivisionFilter(e.target.value); resetPage(); }}>
+                <option value="">All</option>
+                {uniqueDivisions.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              {divisionFilter && (
+                <button className="filter-clear" onClick={() => { setDivisionFilter(''); resetPage(); }}><X size={14} /></button>
+              )}
+            </div>
+          )}
+          {uniqueTeams.length > 1 && (
+            <div className="history-filter-row">
+              <label className="filter-label">Team</label>
+              <select value={teamFilter} onChange={(e) => { setTeamFilter(e.target.value); resetPage(); }}>
+                <option value="">All</option>
+                {uniqueTeams.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              {teamFilter && (
+                <button className="filter-clear" onClick={() => { setTeamFilter(''); resetPage(); }}><X size={14} /></button>
+              )}
+            </div>
+          )}
+          {uniquePlayers.length > 1 && (
+            <div className="history-filter-row">
+              <label className="filter-label">Player</label>
+              <select value={playerFilter} onChange={(e) => { setPlayerFilter(e.target.value); resetPage(); }}>
+                <option value="">All</option>
+                {uniquePlayers.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              {playerFilter && (
+                <button className="filter-clear" onClick={() => { setPlayerFilter(''); resetPage(); }}><X size={14} /></button>
+              )}
+            </div>
+          )}
         </div>
+
+        <div className="history-list">
+          {pagedMatches.map((match) => (
+            <HistoryCard
+              key={match.match_id}
+              match={match}
+              expanded={expandedHistory === match.match_id}
+              onToggle={() => setExpandedHistory(expandedHistory === match.match_id ? null : match.match_id)}
+              onEdit={() => onReEdit(match)}
+              onDelete={() => onDelete(match.match_id)}
+            />
+          ))}
+          {!filteredMatches.length && busy !== 'history' && (
+            <p className="empty-state">
+              {hasFilters ? 'No matches match the selected filters.' : 'No completed matches found.'}
+            </p>
+          )}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="history-paging">
+            <button onClick={() => setPage((p) => p - 1)} disabled={page === 0}>
+              <ChevronLeft size={16} />
+            </button>
+            <span>{page + 1} / {totalPages}</span>
+            <button onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages - 1}>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
       </section>
+
       <section className="tool-surface">
         <div className="section-title">
           <Users size={20} />
@@ -1053,8 +1785,98 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
           ))}
         </div>
       </section>
+
+      <button className="history-add-btn" onClick={onStartNew}>
+        <Plus size={20} />
+        Manually Add Match
+      </button>
     </main>
   );
+}
+
+function HistoryCard({ match, expanded, onToggle, onEdit, onDelete }) {
+  // TURN# DynamoDB writes fail when the submit payload violates a backend rule
+  // (e.g. opponent SL > 23). In those cases the actual data lives in
+  // source_context, which is always stored regardless of turn validation.
+  const sc = match.source_context || {};
+  const hasTurns = Array.isArray(match.turns) && match.turns.length > 0;
+  const turns = hasTurns ? match.turns : (sc.turns || []);
+  const summary = hasTurns ? (match.summary || {}) : (sc.summary || match.summary || {});
+
+  const ourWins = summary.our_wins ?? 0;
+  const theirWins = summary.their_wins ?? 0;
+  const won = ourWins > theirWins;
+  const scoreStr = `${summary.our_score ?? 0}-${summary.their_score ?? 0}`;
+  const opponent = match.opponent_team_name || match.away_team_id || 'Unknown';
+  const ourTeam = match.our_team_name || 'AVL';
+  const submittedDate = match.updated_at || match.created_at;
+
+  return (
+    <article className="history-card">
+      <div className="history-card-header">
+        <div className="history-card-dates">
+          <p className="eyebrow">{formatMatchDate(match.date)}</p>
+          {submittedDate && (
+            <p className="history-submitted-date">Submitted {formatSubmittedDate(submittedDate)}</p>
+          )}
+        </div>
+        <div className="history-card-main">
+          <span className="history-opponent">{ourTeam} vs {opponent}</span>
+          <span className="history-card-result">
+            <span className={`result-badge${won ? '' : ' loss'}`}>{won ? 'W' : 'L'}</span>
+            <strong className="history-score">{scoreStr}</strong>
+          </span>
+        </div>
+      </div>
+      <div className="history-card-actions">
+        <button className="history-detail-btn" onClick={onToggle}>
+          <ChevronDown size={14} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
+          {expanded ? 'Hide Detail' : 'View Detail'}
+        </button>
+        <button className="ghost-button history-edit-btn" onClick={onEdit}>
+          <Pencil size={14} />
+          Edit
+        </button>
+        <button className="ghost-button history-delete-btn" onClick={onDelete}>
+          <Trash2 size={14} />
+          Delete
+        </button>
+      </div>
+      {expanded && (
+        <div className="history-turns">
+          {turns.length ? turns.map((turn) => {
+            const turnWon = Number(turn.our_score) >= 2;
+            return (
+              <div key={turn.turn_num} className="turn-row">
+                <span className={`t-badge ${turnWon ? 'win' : 'loss'}`}>T{turn.turn_num}</span>
+                <span className="turn-players">
+                  {turn.our_player_name} vs {turn.their_player_name}
+                </span>
+                <span className={`turn-score${turnWon ? ' win' : ''}`}>
+                  {turn.our_score}-{turn.their_score}
+                </span>
+              </div>
+            );
+          }) : <p className="empty-state">No turn details recorded.</p>}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function formatMatchDate(dateStr) {
+  if (!dateStr) return '—';
+  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const [year, month, day] = dateStr.split('-');
+  return `${MONTHS[Number(month) - 1]} ${day}, ${year}`;
+}
+
+function formatSubmittedDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d)) return '';
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 function RosterEditor({ players, setPlayers, showScheduled = false }) {
@@ -1289,4 +2111,40 @@ function localSuggestion(eligible, opponentSl) {
     return entries.sort((a, b) => Math.abs(a[1] - opponentSl) - Math.abs(b[1] - opponentSl))[0][0];
   }
   return entries.sort((a, b) => a[1] - b[1])[Math.floor(entries.length / 2)][0];
+}
+
+function SignInScreen({ deniedEmail }) {
+  const truncated = deniedEmail && deniedEmail.length > 28
+    ? deniedEmail.slice(0, 28) + '…'
+    : deniedEmail;
+
+  return (
+    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg, #f5f3ee)' }}>
+      <div style={{
+        maxWidth: 360, width: '100%', margin: 'auto', padding: 24,
+        background: 'var(--paper)', border: '1px solid var(--line)',
+        borderRadius: 8, boxShadow: 'var(--shadow)',
+      }}>
+        <p style={{ margin: '0 0 4px', fontSize: '0.7rem', fontWeight: 850, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)' }}>
+          Anti-Villain League
+        </p>
+        <h1 style={{ margin: '0 0 8px', fontSize: '1.55rem', fontWeight: 700, color: 'var(--ink)' }}>
+          Match Engine
+        </h1>
+        <p style={{ margin: '0 0 20px', fontSize: '0.875rem', color: 'var(--ink)', opacity: 0.7 }}>
+          Sign in with your Google account to access captain tools.
+        </p>
+        {deniedEmail && (
+          <div style={{
+            marginBottom: 16, padding: '10px 12px',
+            background: 'var(--red-soft)', border: '1px solid var(--red)',
+            borderRadius: 8, color: 'var(--red)', fontWeight: 750, fontSize: '0.85rem',
+          }}>
+            Access denied. {truncated} is not on the captain list. Contact the captain to request access.
+          </div>
+        )}
+        <div id="gis-button-target" />
+      </div>
+    </div>
+  );
 }

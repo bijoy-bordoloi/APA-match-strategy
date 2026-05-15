@@ -161,6 +161,13 @@ class MatchRepository:
                 batch.put_item(Item=_clean_for_dynamo(item))
         return sorted_turns(turns)
 
+    def delete_match(self, match_id: str) -> None:
+        """Delete all DynamoDB items for a match (METADATA + all TURN# rows)."""
+        response = self.table.query(KeyConditionExpression=Key("PK").eq(f"MATCH#{match_id}"))
+        with self.table.batch_writer() as batch:
+            for item in response.get("Items", []):
+                batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+
     def set_match_status(self, match_id: str, status: str) -> None:
         self.table.update_item(
             Key={"PK": f"MATCH#{match_id}", "SK": "METADATA"},
@@ -172,7 +179,7 @@ class MatchRepository:
             },
         )
 
-    def list_matches(self, status: str | None = "complete", limit: int = 25) -> list[dict[str, Any]]:
+    def list_matches(self, status: str | None = "complete", limit: int = 200) -> list[dict[str, Any]]:
         statuses = [status] if status else ["live", "planned", "complete"]
         items = []
         for status_value in statuses:
@@ -214,7 +221,42 @@ class MatchRepository:
         return [_from_dynamo(item) for item in response.get("Items", [])]
 
 
-def build_history_response(repository: MatchRepository, *, status: str = "complete", limit: int = 25) -> dict[str, Any]:
+def build_history_context(repository: MatchRepository, limit: int = 8) -> dict[str, Any]:
+    """Compact match history summary for LLM context (season record, player form, recent results)."""
+    history = build_history_response(repository, status="complete", limit=limit)
+
+    team_wins = sum(
+        1 for m in history["matches"]
+        if m.get("summary", {}).get("result") in {"points_win", "victory"}
+    )
+    team_losses = len(history["matches"]) - team_wins
+
+    recent = [
+        {
+            "opponent": m.get("opponent_team_name"),
+            "date": m.get("date"),
+            "result": m.get("summary", {}).get("result"),
+            "our_score": m.get("summary", {}).get("our_score"),
+            "their_score": m.get("summary", {}).get("their_score"),
+        }
+        for m in history["matches"]
+    ]
+
+    return {
+        "season_record": {"wins": team_wins, "losses": team_losses},
+        "player_history": {
+            s["player_name"]: {
+                "wins": s["wins"],
+                "losses": s["losses"],
+                "appearances": s["appearances"],
+            }
+            for s in history["player_stats"]
+        },
+        "recent_matches": recent,
+    }
+
+
+def build_history_response(repository: MatchRepository, *, status: str = "complete", limit: int = 200) -> dict[str, Any]:
     matches = repository.list_matches(status=status, limit=limit)
     expanded = []
     player_stats: dict[str, dict[str, Any]] = {}
