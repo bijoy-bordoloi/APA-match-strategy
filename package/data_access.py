@@ -133,6 +133,24 @@ class MatchRepository:
         self.table.put_item(Item=_clean_for_dynamo(item))
         return _from_dynamo(item)
 
+    def get_match_result(self, match_id: str) -> dict[str, Any] | None:
+        """Fetch score/outcome from METADATA only — no turns loaded.
+
+        Returns {our_score, their_score, outcome} for complete matches, else None.
+        our_score/their_score are individual games won (e.g. 4 and 1).
+        """
+        resp = self.table.get_item(Key={"PK": f"MATCH#{match_id}", "SK": "METADATA"})
+        raw = resp.get("Item")
+        if not raw:
+            return None
+        item = _from_dynamo(raw)
+        if item.get("status") != "complete":
+            return None
+        our = int(item.get("our_matches_won") or 0)
+        their = int(item.get("their_matches_won") or 0)
+        outcome = "win" if our > their else ("loss" if their > our else "tie")
+        return {"our_score": our, "their_score": their, "outcome": outcome}
+
     def get_match(self, match_id: str) -> dict[str, Any] | None:
         response = self.table.query(KeyConditionExpression=Key("PK").eq(f"MATCH#{match_id}"))
         metadata = None

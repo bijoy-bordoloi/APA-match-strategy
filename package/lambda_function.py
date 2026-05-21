@@ -573,42 +573,6 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
     )
     current_week: int | None = next_match["week"] if next_match else None
 
-    # ── Build history index: match_date → result ─────────────────────────────
-    # Keyed by date (YYYY-MM-DD) so rematches against the same opponent are
-    # looked up individually rather than all mapping to the same entry.
-    history_result: dict[str, Any] = {}
-    try:
-        all_complete = repository.list_matches(status="complete", limit=500)
-        avl_matches = [
-            m for m in all_complete
-            if "anti vill" in (m.get("away_team_name") or "").lower()
-            or "anti vill" in (m.get("home_team_name") or "").lower()
-        ]
-        for match_meta in avl_matches:
-            match_date = (match_meta.get("date") or "").strip()
-            if not match_date or match_date in history_result:
-                continue
-            loaded = repository.get_match(match_meta["match_id"])
-            if not loaded:
-                continue
-            summary = loaded["summary"]
-            our_score = summary.get("our_score")
-            their_score = summary.get("their_score")
-            raw_outcome = summary.get("result") or ""
-            if "win" in raw_outcome or "victory" in raw_outcome:
-                outcome = "win"
-            elif "loss" in raw_outcome or "defeat" in raw_outcome:
-                outcome = "loss"
-            else:
-                outcome = "tie"
-            history_result[match_date] = {
-                "our_score": our_score,
-                "their_score": their_score,
-                "outcome": outcome,
-            }
-    except Exception as exc:
-        logger.info("Division history lookup skipped: %s", exc)
-
     # ── Assemble schedule entries ────────────────────────────────────────────
     schedule_out: list[dict[str, Any]] = []
     for match in all_matches:
@@ -625,6 +589,7 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
                 "date": date_str,
                 "opponent": "Bye",
                 "opponent_team_id": None,
+                "apa_match_id": None,
                 "location": "",
                 "is_home": True,
                 "is_bye": True,
@@ -656,14 +621,22 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
                 if resolved:
                     scheduled_players.append(resolved)
 
-        # Result from history — keyed by date so rematches resolve correctly
-        result_entry = history_result.get(date_str)
+        # Fetch result directly by APA match ID — only for past matches
+        result_entry = None
+        apa_match_id = str(match.get("id", ""))
+        match_dt = datetime.fromisoformat(start_iso) if start_iso else None
+        if apa_match_id and match_dt is not None and match_dt < now:
+            try:
+                result_entry = repository.get_match_result(apa_match_id)
+            except Exception:
+                pass
 
         schedule_out.append({
             "week": week,
             "date": date_str,
             "opponent": opp_name,
             "opponent_team_id": opp_team_id,
+            "apa_match_id": str(match.get("id", "")),
             "location": location,
             "is_home": is_home,
             "is_bye": False,

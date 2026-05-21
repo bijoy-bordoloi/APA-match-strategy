@@ -590,6 +590,12 @@ export default function App() {
     setScreen('player');
   }
 
+  async function goToHistoryMatch(matchId) {
+    setPrevScreen('schedule');
+    setExpandedHistory(matchId);
+    await loadHistoryView();
+  }
+
   function reEditMatch(match) {
     const savedOurRoster = match.our_roster || {};
     const savedTheirRoster = match.their_roster || {};
@@ -780,6 +786,7 @@ export default function App() {
           onStartNew={startNewMatch}
           onDelete={deleteFromHistory}
           onPlayerClick={goToPlayer}
+          onBack={prevScreen === 'schedule' ? () => setScreen('schedule') : null}
         />
       )}
 
@@ -796,6 +803,7 @@ export default function App() {
           scheduleData={scheduleData}
           currentWeek={scheduleData?.current_week ?? null}
           onStartMatch={(weekEntry) => prefillFromSchedule(weekEntry, scheduleData?.teams ?? [])}
+          onMatchClick={goToHistoryMatch}
         />
       )}
     </div>
@@ -2051,7 +2059,7 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
   );
 }
 
-function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete, onPlayerClick }) {
+function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete, onPlayerClick, onBack }) {
   const [divisionFilter, setDivisionFilter] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
   const [playerFilter, setPlayerFilter] = useState('');
@@ -2113,6 +2121,11 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
   return (
     <main className="history-layout">
       <section className="tool-surface">
+        {onBack && (
+          <button className="ghost-button player-back-btn" onClick={onBack}>
+            ← Schedule
+          </button>
+        )}
         <div className="section-title split-title">
           <span>
             <History size={20} />
@@ -2621,7 +2634,7 @@ function SignInScreen({ deniedEmail }) {
   );
 }
 
-function ScheduleView({ scheduleData, currentWeek, onStartMatch }) {
+function ScheduleView({ scheduleData, currentWeek, onStartMatch, onMatchClick }) {
   if (!scheduleData) {
     return (
       <div className="schedule-loading">
@@ -2734,14 +2747,18 @@ function ScheduleView({ scheduleData, currentWeek, onStartMatch }) {
             </div>
             <div className="schedule-result">
               {result && outcome ? (
-                <>
+                <button
+                  className="schedule-result-link"
+                  onClick={() => onMatchClick?.(week.apa_match_id)}
+                  title="View match details"
+                >
                   <span className={`schedule-result-badge ${result.outcome}`}>
                     {outcome}
                   </span>
                   <span className="schedule-result-score">
                     {result.our_score}–{result.their_score}
                   </span>
-                </>
+                </button>
               ) : null}
             </div>
           </div>
