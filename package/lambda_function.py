@@ -562,15 +562,20 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
 
     now = datetime.now(timezone.utc)
 
-    # Auto-detect current week from closest playable match by date
+    # Auto-detect current week: first future match (>= now); fall back to last
+    # past match when all weeks are done.
     playable = [m for m in all_matches if not m.get("isBye") and m.get("startTime")]
-    closest = min(playable, key=lambda m: abs((datetime.fromisoformat(m["startTime"]) - now).total_seconds()), default=None)
-    current_week: int | None = closest["week"] if closest else None
+    future = [m for m in playable if datetime.fromisoformat(m["startTime"]) >= now]
+    next_match = (
+        min(future, key=lambda m: datetime.fromisoformat(m["startTime"]))
+        if future
+        else max(playable, key=lambda m: datetime.fromisoformat(m["startTime"]), default=None)
+    )
+    current_week: int | None = next_match["week"] if next_match else None
 
-    # ── Build history index: opponent_team_id → result ──────────────────────
-    # Query with a large limit so scraper-seeded matches from other teams
-    # don't crowd out AVL's own matches; filter to AVL matches only before
-    # calling get_match to avoid unnecessary DynamoDB round-trips.
+    # ── Build history index: match_date → result ─────────────────────────────
+    # Keyed by date (YYYY-MM-DD) so rematches against the same opponent are
+    # looked up individually rather than all mapping to the same entry.
     history_result: dict[str, Any] = {}
     try:
         all_complete = repository.list_matches(status="complete", limit=500)
@@ -580,15 +585,8 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
             or "anti vill" in (m.get("home_team_name") or "").lower()
         ]
         for match_meta in avl_matches:
-            avl_is_away = "anti vill" in (match_meta.get("away_team_name") or "").lower()
-            opp_name = (
-                match_meta.get("home_team_name") if avl_is_away
-                else match_meta.get("away_team_name")
-            ) or ""
-            if not opp_name:
-                continue
-            opp_tid = slugify(opp_name)
-            if opp_tid in history_result:
+            match_date = (match_meta.get("date") or "").strip()
+            if not match_date or match_date in history_result:
                 continue
             loaded = repository.get_match(match_meta["match_id"])
             if not loaded:
@@ -603,7 +601,7 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
                 outcome = "loss"
             else:
                 outcome = "tie"
-            history_result[opp_tid] = {
+            history_result[match_date] = {
                 "our_score": our_score,
                 "their_score": their_score,
                 "outcome": outcome,
@@ -658,8 +656,8 @@ def handle_division(_body: dict[str, Any], repository: MatchRepository, query: d
                 if resolved:
                     scheduled_players.append(resolved)
 
-        # Result from history
-        result_entry = history_result.get(opp_team_id)
+        # Result from history — keyed by date so rematches resolve correctly
+        result_entry = history_result.get(date_str)
 
         schedule_out.append({
             "week": week,
