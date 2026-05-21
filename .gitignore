@@ -3,3 +3,24 @@ __pycache__/
 .aws-sam/
 frontend/dist/
 frontend/node_modules/
+
+# Lambda deployment package — rebuilt by deploy.sh (pip install)
+package/
+
+# Build artifacts
+*.zip
+
+# Local overrides
+config.json
+
+# Test artifacts
+.pytest_cache/
+frontend/playwright-report/
+frontend/playwright-smoke-report/
+frontend/test-results/
+
+# Local env — contains secrets, never commit
+frontend/.env.local
+
+# Sensitive — lives in S3 only
+configurations/authorized-users.json
