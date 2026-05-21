@@ -31,8 +31,9 @@ export async function submitMatch(payload) {
   return postJson('/submit', payload);
 }
 
-export async function getHistory() {
-  const result = await request('/history?limit=200', { method: 'GET' });
+export async function getHistory(matchId = null) {
+  const qs = matchId ? `?match_id=${encodeURIComponent(matchId)}` : '?limit=200';
+  const result = await request(`/history${qs}`, { method: 'GET' });
   return result.result || result;
 }
 

@@ -408,6 +408,13 @@ def handle_submit(body: dict[str, Any], repository: MatchRepository) -> dict[str
 
 
 def handle_history(_body: dict[str, Any], repository: MatchRepository, query: dict[str, str]) -> dict[str, Any]:
+    match_id = query.get("match_id")
+    if match_id:
+        loaded = repository.get_match(str(match_id))
+        if not loaded:
+            return {"result": {"matches": [], "player_stats": []}, "error": None}
+        entry = {**loaded["match"], "turns": loaded["turns"], "summary": loaded["summary"]}
+        return {"result": {"matches": [entry], "player_stats": []}, "error": None}
     status = query.get("status", "complete")
     limit = int(query.get("limit", "200"))
     return {"result": build_history_response(repository, status=status, limit=limit), "error": None}
