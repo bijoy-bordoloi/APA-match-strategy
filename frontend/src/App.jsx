@@ -88,6 +88,7 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [historyData, setHistoryData] = useState({ matches: [], player_stats: [] });
   const [expandedHistory, setExpandedHistory] = useState(null);
+  const [historyMatchFilter, setHistoryMatchFilter] = useState(null);
   const [scheduleData, setScheduleData] = useState(null);
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
@@ -539,6 +540,7 @@ export default function App() {
 
   async function loadHistoryView() {
     setScreen('history');
+    setHistoryMatchFilter(null);
     setBusy('history');
     setNotice('');
     try {
@@ -593,6 +595,7 @@ export default function App() {
   async function goToHistoryMatch(matchId) {
     setPrevScreen('schedule');
     setExpandedHistory(matchId);
+    setHistoryMatchFilter(matchId);
     await loadHistoryView();
   }
 
@@ -787,6 +790,7 @@ export default function App() {
           onDelete={deleteFromHistory}
           onPlayerClick={goToPlayer}
           onBack={prevScreen === 'schedule' ? () => setScreen('schedule') : null}
+          matchIdFilter={historyMatchFilter}
         />
       )}
 
@@ -2059,7 +2063,7 @@ function PlayerView({ initialPlayer, historyData, onBack }) {
   );
 }
 
-function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete, onPlayerClick, onBack }) {
+function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, onReEdit, onStartNew, onDelete, onPlayerClick, onBack, matchIdFilter }) {
   const [divisionFilter, setDivisionFilter] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
   const [playerFilter, setPlayerFilter] = useState('');
@@ -2113,8 +2117,12 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
     return true;
   });
 
-  const totalPages = Math.ceil(filteredMatches.length / HISTORY_PAGE_SIZE);
-  const pagedMatches = filteredMatches.slice(page * HISTORY_PAGE_SIZE, (page + 1) * HISTORY_PAGE_SIZE);
+  const visibleMatches = matchIdFilter
+    ? filteredMatches.filter((m) => m.match_id === matchIdFilter)
+    : filteredMatches;
+
+  const totalPages = Math.ceil(visibleMatches.length / HISTORY_PAGE_SIZE);
+  const pagedMatches = visibleMatches.slice(page * HISTORY_PAGE_SIZE, (page + 1) * HISTORY_PAGE_SIZE);
 
   const hasFilters = divisionFilter || teamFilter || playerFilter;
 
@@ -2186,9 +2194,9 @@ function HistoryView({ historyData, busy, expandedHistory, setExpandedHistory, o
               onPlayerClick={onPlayerClick}
             />
           ))}
-          {!filteredMatches.length && busy !== 'history' && (
+          {!visibleMatches.length && busy !== 'history' && (
             <p className="empty-state">
-              {hasFilters ? 'No matches match the selected filters.' : 'No completed matches found.'}
+              {matchIdFilter ? 'Match not found in history.' : hasFilters ? 'No matches match the selected filters.' : 'No completed matches found.'}
             </p>
           )}
         </div>
